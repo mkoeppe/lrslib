@@ -1,0 +1,131 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.75 [en] (X11; U; OSF1 V4.0 alpha) [Netscape]">
+   <title>User's Guide for lrs</title>
+</head>
+<body text="#000000" bgcolor="#FFFFFF" link="#0000EF" vlink="#55188A" alink="#FF0000">
+
+<ul>
+<h1>
+&nbsp;lrslib programmer's guide&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Version 4.0</h1>
+</ul>
+&nbsp;December 11, 2000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Copyright(C) 2000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://cgm.cs.mcgill.ca/~avis/C/lrs.html">
+lrs home page</a>
+<br>&nbsp; David Avis&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+avis@cs.mcgill.ca&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://cgm.cs.mcgill.ca/~avis">
+http://cgm.cs.mcgill.ca/~avis</a>
+<br>&nbsp;
+<li>
+<a href="#Introduction">Introduction</a></li>
+
+<li>
+<a href="#Installation Section">Installation</a></li>
+
+<li>
+<a href="http://cgm.cs.mcgill.ca/~avis/C/lrslib/USERGUIDE.html">User's
+Manual</a></li>
+
+<li>
+<a href="#Acknowledgements">Acknowledgements and References</a></li>
+
+<h3>
+
+<hr WIDTH="100%"><a NAME="Introduction"></a>Introduction</h3>
+lrslib consists of the following main components
+<p>Libraries:
+<p>&nbsp;&nbsp;&nbsp; lrslib:&nbsp; A callable library of functions implementing
+lrs and redund
+<br>&nbsp;&nbsp;&nbsp; lrsmp: An extended precision arithmetic package
+for lrslib
+<br>&nbsp;&nbsp;&nbsp; lrslong: A fixed precision integer package for lrslib
+<br>&nbsp;&nbsp;&nbsp; lrsgmp: An interface for lrslib to the<a href="http://www.swox.com/gmp">
+GNU MP</a> arithmetic package.
+<p>Drivers:
+<br>&nbsp;&nbsp;&nbsp; lrs.c:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Transform H-representation to V-representation
+<br>&nbsp;&nbsp;&nbsp; redund.c&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Remove redundancies from H or V-representation
+<p>Utilities:
+<br>&nbsp;&nbsp;&nbsp; buffer.c&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Remove duplicates output (parallel geometric rays in unbounded non-pointed
+polyhedra)
+<p>For the moment, the only documentation I can offer are the comments
+in the individual programs. Consult the User's manual for usage instructions.
+<p>These programs can be distributed freely under the GNU GENERAL PUBLIC
+LICENSE. Please read the file COPYING carefully before using.&nbsp; Please
+inform the author of any interesting applications for which <i>lrs</i>
+was helpful.
+<h3>
+
+<hr WIDTH="100%"><a NAME="Installation Section"></a>Installation</h3>
+From <a href="http://cgm.cs.mcgill.ca/~avis/C/lrs.html">lrs home page</a>,&nbsp;
+click on&nbsp; "Download" and retrieve the file lrslib-040.tar.gz
+<br>&nbsp;&nbsp;&nbsp; Unpack with:
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; % gunzip lrslib-040.tar.gz
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; % tar xvf lrslib-040.tar
+<p>&nbsp;&nbsp;&nbsp; Go to the new directory
+<br>&nbsp;&nbsp;&nbsp; % cd lrslib-040
+<br>&nbsp;
+<h4>
+Installation with built in arithmetic libraries.</h4>
+&nbsp;&nbsp;&nbsp;&nbsp; make binaries by typing
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; % make all&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+(most 32 bit unix machines)
+<br>&nbsp;&nbsp;&nbsp; or
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; % make all64&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+(64 bit integer machines such as DEC Alpha)
+<br>&nbsp;&nbsp;&nbsp; or
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; % make nosigs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+( 32 bit machines without signals/timing routines)
+<p>&nbsp;&nbsp;&nbsp; Test the program by typing:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+lrs&nbsp; cube.ine
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+redund cubetop.ine
+<h4>
+Installation with GNU MP library</h4>
+To use the GNU MP library, it is necessary to first install it and record
+its location. The
+<br>default makefile assumes: /usr/local/include and /usr/local/lib for
+headers and binaries
+<br>respectively. Edit the gmp: section of "makefile" appropriately.
+<p>&nbsp;&nbsp;&nbsp; make binaries by typing
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; % make gmp
+<p>&nbsp;&nbsp;&nbsp; Test the programs by typing:&nbsp;&nbsp;&nbsp; glrs
+cube.ine
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+gredund cube.ine
+<h3>
+
+<hr WIDTH="100%"><a NAME="Acknowledgements"></a>Acknowledgements and References</h3>
+I would like to thank many people for helping with this implementation
+project. Komei Fukuda encouraged me from the start, collaborated in designing
+the file formats, and provided many suggestions for improving the code.
+David Bremner implemented memory allocation, caching and signals. Jerry
+Quinn coded the integer divide routine. Bug reports were provided by many
+users, for which I thank them. In particular Gerardo Garbulsky's extensive
+use of earlier versions suggested many refinements, Ambros Marzetta demonstrated
+the importance of caching and Andreas Enge helped debug the volume computation.
+<p>D. Avis, lrs: A Revised Implementation of the Reverse Search Vertex
+Enumeration Algorithm, <a href="http://cgm.cs.mcgill.ca/~avis/doc/avis/Av98a.ps.gz">http://cgm.cs.mcgill.ca/~avis/doc/avis/Av98a.ps.gz</a>
+May 1998.
+<p>D. Avis, "Computational Experience with the Reverse Search Vertex Enumeration
+Algorithm," Optimization Methods and Software, (1998 (to appear)).<a href="http://cgm.cs.mcgill.ca/~avis/doc/avis/Av98b.ps.gz">
+http://cgm.cs.mcgill.ca/~avis/doc/avis/Av98b.ps.gz</a>
+<p>D. Avis, D. Bremner, and R. Seidel, "How Good are Convex Hull Algorithms?,"
+Computational Geometry: Theory and Applications, Vol 7,pp.265-301(1997).
+<a href="http://cgm.cs.mcgill.ca/~avis/doc/avis/ABS96a.ps.gz">http://cgm.cs.mcgill.ca/~avis/doc/avis/ABS96a.ps.gz</a>
+<p>D. Avis and L. Devroye, "Estimating the Number of Vertices of a Polyhedron,"
+pp. 179-190 in Snapshots of Computational and Discrete Geometry, ed. D.
+Avis and P. Bose, School of Computer Science, McGill University (1994).
+<a href="http://cgm.cs.mcgill.ca/~avis/doc/avis/AD94a.ps.gz">http://cgm.cs.mcgill.ca/~avis/doc/avis/AD94a.ps.gz</a>
+<p>D. Avis and K. Fukuda, "A Pivoting Algorithm for Convex Hulls and Vertex
+Enumeration of Arrangements and Polyhedra," Discrete and Computational
+Geometry, Vol. 8, pp. 295-313 (1992).&nbsp; <a href="http://cgm.cs.mcgill.ca/~avis/doc/avis/AF92b.ps.gz">http://cgm.cs.mcgill.ca/~avis/doc/avis/AF92b.ps.gz</a>
+<p>D. Bremner, K. Fukuda and A. Marzetta, Primal-Dual Methods for Vertex
+and Facet Enumeration, 13th ACM
+<br>Symposium on Computational Geometry SCG 1997, 49-56.
+</body>
+</html>

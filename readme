@@ -1,0 +1,90 @@
+README file for lrslib : reverse search vertex enumeration program/CH package
+-----------------------------------------------------------------------------
+2000.6.14
+
+Various binaries are available in the directory binaries.
+
+Currently available:
+
+binaries/debian        Debian Linux      
+binaries/sun           Sun Ultra Sparc
+binaries/win98         Windows 95/98
+
+------------------------------------------------------------------------------
+2000.6.14
+
+Dear Colleagues: This is a preliminary version of lrslib v.4.0 which
+supercedes all previous versions of the programs lrs and redund.
+Documentation is currently being maintained at the URL:
+
+http://www.lab2.kuis.kyoto-u.ac.jp/~avis/lrs.html
+
+New Features:
+------------
+
+1. Library version allows customization of the search function, access to the
+output as it is produced, and access to lrs from other programs.
+
+2. Problems need no longer be in full dimension. This allows the
+input of equations, partial enumeration on facets, ridges etc.
+
+3. Choice of arithmetic packages. Currently available are:
+
+   lrsmp     Extended precision arithmetic used in previous releases
+  
+   lrslong   Fixed length long integer arithmetic. No overflow checking
+             but 5-10 times faster.
+
+   lrsgmp    Requires preinstallation of GNU GMP package, available at
+             http://www.swox.com/gmp/
+
+  The standard "make all" gives lrs/redund with lrsmp, and lrs1/redund1 with lrslong. 
+ 
+4. redund was completely rewritten and is faster than before. The previous
+   version did not remove redundancy in the starting basis and should be
+   discarded. 
+
+
+Installation:
+------------
+
+1. From website go to "Download" and retrieve the file lrslib-040.tar.gz
+
+2. Unpack with:
+
+   % gunzip lrslib-040.tar.gz
+   % tar xvf lrslib-040.tar
+
+3. Go to the new directory
+
+   % cd lrslib-040
+
+4. make binaries by typing
+   
+   % make all               (most 32 bit unix machines)
+
+or
+
+  % make all64              (64 bit integer machines such as DEC Alpha)
+
+If the make fails, it is usually due to timing and/or interrupt handling
+routines. In this case try:
+
+  % make nosigs
+
+5. If successful you should get binaries: lrs redund lrs1 redund1
+
+6. Test the program lrs by tuping:
+
+   lrs cube.ine
+
+and you should get output resembling the file cube.ext
+
+7. You will file additional test files in the directories: ine and ext
+
+8. For GNU gmp library, edit the makefile to set the INCLUDE and LIB paths for
+   the location of the gmp libarary, and type:
+
+   %make gmp
+
+   You should get binaries glrs and gredund

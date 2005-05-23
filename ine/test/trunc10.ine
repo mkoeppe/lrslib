@@ -121,4 +121,5 @@ begin
 7 0 0 0 0 0 0 0 0 -8 0 
 7 0 0 0 0 0 0 0 0 0 -8 
 end
-
+printcobasis
+startingcobasis 82 83 84 85 86 87 88 89 90 112

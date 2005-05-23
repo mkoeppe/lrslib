@@ -17,7 +17,7 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /******************************************************************************/
-/*  See ftp://mutt.cs.mcgill.ca/pub/C/lrs.html for lrs usage instructions     */
+/*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for lrs usage instructions   */
 /******************************************************************************/
 /* This package contains the extended precision routines used by lrs
    and some other miscellaneous routines. It is based on gmp
@@ -93,6 +93,8 @@
 #define greater(a, b)           (mpz_cmp((a),(b))>0 ? ONE : ZERO)
 #define gcd(a,b)                mpz_gcd((a),(a),(b))
 #define itomp(in, a)            mpz_set_si( (a) , (in) )
+#define mptoi(a)                mpz_get_si( (a) )
+#define mptodouble(a)           mpz_get_d ( (a) )
 #define mulint(a, b, c)         mpz_mul((c),(a),(b))
 #define one(a)                  (mpz_cmp_si((a),ONE) == 0 ? ONE : ZERO)
 #define negative(a)             (mpz_sgn(a) < 0 ? ONE : ZERO)
@@ -152,19 +154,19 @@ long lrs_mp_init (long dec_digits, FILE * lrs_ifp, FILE * lrs_ofp);	/* max numbe
 
 #define lrs_alloc_mp(a)		(mpz_init (a) )
 #define lrs_clear_mp(a)		(mpz_clear (a) )
-lrs_mp_vector lrs_alloc_mp_vector (long n);	/* allocate lrs_mp_vector for n+1 lrs_mp numbers */
+lrs_mp_vector lrs_alloc_mp_vector (long n);	/* allocate lrs_mp_vector for n+1 lrs_mp numbers         */
 lrs_mp_matrix lrs_alloc_mp_matrix (long m, long n);	/* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp   */
+void lrs_clear_mp_vector (lrs_mp_vector p, long n);	/* clear lrs_mp_vector for n+1 lrs_mp numbers    */
+void lrs_clear_mp_matrix (lrs_mp_matrix p, long m, long n); /* clear m by n lrs_mp_matrix                */
 
 /*********************************************************/
 /* Core library functions - depend on mp implementation  */
 /******************************************************* */
 void atomp (const char s[], lrs_mp a);	/* convert string to lrs_mp integer               */
-long compare (lrs_mp a, lrs_mp b);	/* a ? b and returns -1,0,1 for <,=,> */
-void linint (lrs_mp a, long ka, lrs_mp b, long kb);     /* compute a*ka+b*kb --> a                        */
-void mptodouble (lrs_mp a, double *x);	/* convert lrs_mp to double                       */
-long mptoi (lrs_mp a);		/* convert lrs_mp to long integer */
+long compare (lrs_mp a, lrs_mp b);	/* a ? b and returns -1,0,1 for <,=,>             */
+void linint (lrs_mp a, long ka, lrs_mp b, long kb);     /* compute a*ka+b*kb --> a        */
 void pmp (char name[], lrs_mp a);       /* print the long precision integer a             */
-void prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+void prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                */
 void readmp (lrs_mp a);		/* read an integer and convert to lrs_mp          */
 long readrat (lrs_mp Na, lrs_mp Da);	/* read a rational or int and convert to lrs_mp   */
 void reduce (lrs_mp Na, lrs_mp Da);	/* reduces Na Da by gcd(Na,Da)                    */

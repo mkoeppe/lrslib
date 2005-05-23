@@ -1,5 +1,6 @@
 cube
 *top facet of cube
+*nonnegative
 linearity 1 3
 H-representation
 begin

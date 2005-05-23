@@ -17,7 +17,7 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /******************************************************************************/
-/*  See ftp://mutt.cs.mcgill.ca/pub/C/lrs.html for lrs usage instructions     */
+/*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for lrs usage instructions   */
 /******************************************************************************/
 /* This package contains the extended precision routines used by lrs
    and some other miscellaneous routines. The maximum precision depends on
@@ -99,7 +99,7 @@
 #define divint(a, b, c)         *(c) = *(a) / *(b); *(a) = *(a) % *(b)
 #define exactdivint(a,b,c) 	*(c) = *(a) / *(b);
 #define greater(a, b)           (*(a) > *(b) )
-#define itomp(in, a)            *(a) = in
+#define itomp(in, a)             *(a) =  in 
 #define linint(a, ka, b, kb)    *(a) = *(a) * ka + *(b) * kb
 #define mulint(a, b, c)         *(c) = *(a) * *(b)
 #define one(a)                  (*(a) == 1)
@@ -164,6 +164,10 @@ long lrs_mp_init (long dec_digits, FILE * lrs_ifp, FILE * lrs_ofp);	/* max numbe
 lrs_mp_t lrs_alloc_mp_t();                      /* dynamic allocation of lrs_mp                  */
 lrs_mp_vector lrs_alloc_mp_vector (long n);	/* allocate lrs_mp_vector for n+1 lrs_mp numbers */
 lrs_mp_matrix lrs_alloc_mp_matrix (long m, long n);	/* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp   */
+
+void lrs_clear_mp_vector (lrs_mp_vector a, long n);
+void lrs_clear_mp_matrix (lrs_mp_matrix a, long m, long n);
+
 
 /*********************************************************/
 /* Core library functions - depend on mp implementation  */

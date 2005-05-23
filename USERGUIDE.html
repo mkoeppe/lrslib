@@ -2,27 +2,30 @@
 <html>
 <head>
    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-   <meta name="GENERATOR" content="Mozilla/4.75 [en] (X11; U; OSF1 V4.0 alpha) [Netscape]">
+   <meta name="GENERATOR" content="Mozilla/4.76 [en] (X11; U; Linux 2.2.12 i386) [Netscape]">
    <title>User's Guide for lrs</title>
 </head>
 <body text="#000000" bgcolor="#FFFFFF" link="#0000EF" vlink="#55188A" alink="#FF0000">
 
 <ul>
-<h1>
-&nbsp;User's Guide for lrs - Version 4.0</h1>
-</ul>
+<h3>
+&nbsp;User's Guide for lrs - Version 4.1</h3>
 
 <h3>
-<font size=+0>December 11, 2000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-Copyright(C) 2000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://www.lab2.kuis.kyoto-u.ac.jp/~avis/lrs.html">
+<font size=+0>July 3, 2001&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Copyright(C) 2001&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://www.lab2.kuis.kyoto-u.ac.jp/~avis/lrs.html">
 lrs home page</a></font></h3>
+</ul>
 
 <h3>
 <font size=+0>&nbsp; David Avis&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 avis@cs.mcgill.ca&nbsp;&nbsp;&nbsp;&nbsp; <a href="http://cgm.cs.mcgill.ca/~avis">http://cgm.cs.mcgill.ca/~avis</a></font></h3>
 
 <li>
-<a href="#What's New in Version 4.0">What's New in Version 4.0&nbsp; (new)</a></li>
+<a href="#What's New in Version 4.1">What's New in Version 4.1</a></li>
+
+<li>
+<a href="#What's New in Version 4.0">What's New in Version 4.0</a></li>
 
 <li>
 <a href="#Introduction">Introduction&nbsp; (revised)</a></li>
@@ -75,7 +78,22 @@ Point Enumeration and Redundant Inequalities</a></li>
 <hr WIDTH="100%"></h3>
 
 <h3>
-<a NAME="What's New in Version 4.0"></a>What's New in Version 4.0</h3>
+<a NAME="What's New in Version 4.1"></a>What's New in Version 4.1</h3>
+Version 4.1 of<font color="#3333FF"> lrslib</font> contains no substantial
+revisions to the basic algorithms, but contains complete garbage collection
+and some simple drivers for solving vertex enumeration, convex hull and
+linear programming problems on generate polyhedra. The generation of input
+internally is simplified by the inclusion of some lpsolve like procedures
+to enable easy construction of the constraint matrix. Documentation for
+this is contained in <font size=+0><a href="http://cgm.cs.mcgill.ca/~avis/C/lrslib/lrslib.html">http://cgm.cs.mcgill.ca/~avis/C/lrslib/lrslib.html</a></font>
+<p>A new feature of the basic package is the <font color="#000099">nonnegative</font>
+option that speeds up the solution of problems with H-representation:
+<blockquote>b+Ax >= 0,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; x>=0</blockquote>
+
+<hr WIDTH="100%">
+<h3>
+<a NAME="What's New in Version 4.0"></a>What's New in Version 4.0 (included
+in Version 4.1)</h3>
 <font size=+0>Version 4.0 of <font color="#3333FF">lrs</font> is distributed
 as the callable library <font color="#3333FF">lrslib</font>. Two drivers
 are supplied, <font color="#3333FF">lrs.c</font> and <font color="#3333FF">redund.c</font>,
@@ -142,30 +160,33 @@ format is compatible with that&nbsp; used in Fukuda's <i><a href="http://www.ifo
 which performs the same transformations using a version of the <i>double
 description method</i>.&nbsp; <i>cdd</i> can also be used&nbsp; in conjunction
 with <i>lrs </i>as a pre-processor for projections to subspaces, or as
-a post processor for computing the entire face lattice. Another program
-using the same file format is the primal-dual method <i>pd,</i> developed
-by <a href="http://wwwjn.inf.ethz.ch/ambros/pd.html">Bremner, Fukuda and
-Marzetta(1997)</a>.&nbsp; It is essentially dual to <i>lrs,</i> and is
-very efficient for computing H-representations of simple polyhedra, and
-V-representations of simplicial polyhedra. It will compute the volume of
-a polytope given by an H-representation.
+a post processor for computing various adjacencies and incidences between
+the V and H-representations. Another program using the same file format
+is the primal-dual method <i>pd,</i> developed by <a href="http://wwwjn.inf.ethz.ch/ambros/pd.html">Bremner,
+Fukuda and Marzetta(1997)</a>.&nbsp; It is essentially dual to <i>lrs,</i>
+and is very efficient for computing H-representations of simple polyhedra,
+and V-representations of simplicial polyhedra. It will compute the volume
+of a polytope given by an H-representation.
 <p>Another program&nbsp; based on the double description method is Christof
 and Loebel's <i><a href="http://www.iwr.uni-heidelberg.de/iwr/comopt/software/PORTA/">porta</a>,
-</i>and
-a versatile tool for the algorithmic treatment of polytopes is Gawrilow
-and Joswig's&nbsp; <i><a href="http://www.math.tu-berlin.de/diskregeom/polymake/doc">polymake</a></i>
-package. Barber et al.'s <i><a href="http://www.geom.umn.edu/software/qhull">qhull</a></i>&nbsp;
+</i>Barber
+et al.'s <i><a href="http://www.geom.umn.edu/software/qhull">qhull</a></i>&nbsp;
 and some visualization programs, can be found at the <a href="http://www.geom.umn.edu/">Geometry
 Center</a>. A package for volume computation has been developped by Bueeler
-and Enge. A comprehensive general source of related infomation are Erickson's
-<a href="http://compgeom.cs.uiuc.edu/~jeffe/compgeom/">Computational
-Geometry Pages.</a>
-<p>In version 4.0, polyhedra handled by <i>lrs&nbsp;</i> need not be full
-dimensional&nbsp; and may contain input linearities and redundant columns
-.&nbsp; <i>lrs</i> accepts either integer or rational input, and produces
-integer or rational output. All computations are done exactly using either
-extended precision arithmetic or fixed long integer arithmetic. In the
-latter case no overflow checking is performed, and the user is advised
+and Enge.&nbsp; A versatile tool for the algorithmic treatment of polytopes
+is Gawrilow and Joswig's&nbsp; <i><a href="http://www.math.tu-berlin.de/diskregeom/polymake/doc">polymake</a></i>
+package. This high level package allows a large variety of information
+about a polytope to be computed, including the entire face lattice. It
+is designed to interface with a variety of vertex enumeration/convex hull
+programs, including <i>cdd, lrs</i> and <i>porta</i>. <a href="http://www.cs.unb.ca/~bremner/PolytopeBase">PolytopeBase</a>
+is a comprehensive annotated bibliography on the subject is maintained
+by Bremner.
+<p>From version 4.0, polyhedra handled by <i>lrs&nbsp;</i> need not be
+full dimensional&nbsp; and may contain input linearities and redundant
+columns .&nbsp; <i>lrs</i> accepts either integer or rational input, and
+produces integer or rational output. All computations are done exactly
+using either extended precision arithmetic or fixed long integer arithmetic.
+In the latter case no overflow checking is performed, and the user is advised
 to check results using the extended precision version. Since it is a pivot
 based method, <i>lrs</i> can be very slow for degenerate inputs: i.e..
 H-representations of non-simple polyhedra, and V-representations of non-simplicial
@@ -215,25 +236,25 @@ were helpful.
 Some binaries are available. From lrs home page,&nbsp; click on&nbsp; "Download"
 and change directory to "binaries" and check for available platforms. These
 should be usable directly, however to get source, full documentation and
-a set of test files, you will need to retrieve lrslib-040 as described
+a set of test files, you will need to retrieve lrslib-041 as described
 below.</li>
 
 <br>&nbsp;
 <li>
-From lrs home page, click on "Download" and retrieve the file lrslib-040.tar.gz</li>
+From lrs home page, click on "Download" and retrieve the file lrslib-041.tar.gz</li>
 
 <br>&nbsp;
 <li>
 Unpack with:</li>
 
-<br>&nbsp;&nbsp; % gunzip lrslib-040.tar.gz
-<br>&nbsp;&nbsp; % tar xvf lrslib-040.tar
+<br>&nbsp;&nbsp; % gunzip lrslib-041.tar.gz
+<br>&nbsp;&nbsp; % tar xvf lrslib-041.tar
 <ul>&nbsp;</ul>
 
 <li>
 Go to the new directory</li>
 
-<br>% cd lrslib-040
+<br>% cd lrslib-041
 <br>&nbsp;
 <li>
 &nbsp;make binariesl <font color="#3333FF">lrs</font> and <font color="#3333FF">redund</font>&nbsp;
@@ -380,7 +401,7 @@ V-representation</h4>
 <br><i>name</i>
 <br><font color="#3333FF">V-representation</font>
 <br>{options}
-<br>{<a href="#Linearities">linearities</a>}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<br>{<a href="#Linearities">linearities</a>}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <font color="#CC0000">/* new in version 4.0 */</font>
 <br><font color="#3333FF">begin</font>
 <br><font color="#3333FF">m n rational</font>
@@ -595,7 +616,25 @@ be reported.</font></ul>
 will be terminated at depth k, for k a non-negative integer. This can be
 used for running reverse search on subtrees as separate processes, e.g.
 in a distributed computing environment.</font></ul>
-<b><font color="#000066">printcobasis&nbsp; k&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<b><font color="#000066">nonnegative&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</font><font color="#990000">//modified in lrs 4.1 //&nbsp;&nbsp;&nbsp;</font><font color="#000066">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></b><font color="#CC0000">
+// This option must come before the begin statement//</font>
+<br><font color="#CC0000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+//H-representation only //</font>
+<br>&nbsp;
+<blockquote><font color="#000000">For problems where the input is an H-representation
+of the form b+Ax>=0, x>=0 (ie. all variables non-negative, all constraints
+inequalities) it is not necessary to give the non-negative constraints
+explicitly if the </font><font color="#000099">nonnegative</font><font color="#000000">
+option is used. This option cannot be used for V-representations, or with
+the </font><font color="#000099">linearit</font><font color="#000000">y
+option (in which case the linearities will be treated as inequalities).
+This option may be used with </font><font color="#000099">redund</font><font color="#000000">,
+but the implied nonnegativity constraints are not tested themselves for
+redundancy. To test everything it is necessary to enter the nonnegativity
+constraints explicitly in the input file.</font></blockquote>
+
+<p><br><b><font color="#000066">printcobasis&nbsp; k&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
 </font></b><font color="#CC0000">Modified in lrs4.0</font>
 <ul>Every k'th cobasis is printed. <font color="#990000">If k is omitted,
@@ -648,8 +687,7 @@ and 4 bases have been computed. This facet is defined by the vertices in
 positions 2,3,4 in the input file. The additional cobasis index 5* appears
 because a V-representation is lifted to one higher dimension before processing,
 and this index fills out the cobasis. I#3 means that this facet is incident
-with 3 input vertices/rays, ie. it is non-degenerate. See option 
-</font><b><font color="#000099">incidence</font></b><font color="#000000">
+with 3 input vertices/rays, ie. it is non-degenerate. See option </font><b><font color="#000099">incidence</font></b><font color="#000000">
 above for more information.</font>
 <br><font color="#000000">To initiate <i>lrs</i> from this facet all 4
 indices must be given in this order (omit the *), eg.</font>
@@ -658,7 +696,7 @@ indices must be given in this order (omit the *), eg.</font>
 to restart from this facet:</font>
 <br><font color="#000099">restart 5 4 3 2 3 4 5</font></ul>
 <font color="#000066"><b>restart&nbsp; V# R# B# depth {facet #s or vertex/ray
-#s</b>}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+#s</b>}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 
 </font><font color="#990000">Modified in lrs4.0</font>
 <ul><font color="#000000"><i>lrs</i> can be restarted from any known cobasis.
@@ -696,7 +734,7 @@ will find its own starting cobasis. For example, with cube.ine, the user
 can start at vertex (-1,1,-1) by specifying:</font>
 <br><b><font color="#000099">startingcobasis 1 3 4</font></b></ul>
 <b><font color="#000099">truncate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font></b><font color="#000000">
-// H-representation only //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+// H-representation only //&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </font><b><font color="#CC0000">New!</font></b>
 <blockquote><font color="#000000">The reverse search tree is truncated(pruned)&nbsp;
 whenever a new vertex is encountered. </font><font color="#CC0000">Note</font><font color="#000000">:
@@ -843,7 +881,7 @@ output size is huge.</ul>
 
 <ul><i>lrs</i> can be used to solve linear programming problems in rational
 arithmetic when the input is an H-representation.&nbsp; Use the option:</ul>
-<b><font color="#000066">lponly</font></b><b><font color="#000066"></font></b>
+<b><font color="#000066">lponly</font></b>
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 and one of the options maximize or minize:
 <p><b><font color="#000066">maximize </font><font color="#000099">a<sub>0</sub>
@@ -896,7 +934,7 @@ x<sub>1&nbsp;</sub> - 2 p<sub>2&nbsp;</sub> x<sub>2
 p<sub>n-1 </sub>x<sub>n -1&nbsp;</sub> + x <sub>n</sub>>= 0
 <p><i>lrs</i> is applied to the H-representation so created.&nbsp; This
 transformation is performed automatically for a V-representation if the
-<p><b><font color="#000099">voronoi&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<p><b><font color="#000099">voronoi&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </font></b>// V-representation only - <font color="#990000">place immediately
 after end statement</font> //
 <p>option is specified.
@@ -1101,7 +1139,7 @@ as that produced by cdd.</font></blockquote>
 option. It is possible to interrupt <i>lrs</i> and get the latest cobasis,
 which can be used for restarting the program (useful if the machine is
 going down!)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>signal&nbsp;</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b>signal&nbsp;</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 <b>operation</b>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; USR1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 print current cobasis and continue

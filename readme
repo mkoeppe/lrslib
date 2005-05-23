@@ -1,5 +1,30 @@
 README file for lrslib : reverse search vertex enumeration program/CH package
 -----------------------------------------------------------------------------
+Documentation is currently being maintained at the URL:
+
+http://cgm.cs.mcgill.ca/~avis/lrs.html
+-----------------------------------------------------------------------------
+
+2001.6.20
+
+lrslib v.4.1
+
+lpsolve like procedures to build input data added. Demo programs are:
+
+vedemo.c    vertex enumeration
+chdemo.c    facet enumeration
+lpdemo.c    linear programs
+
+They can be build using: make demo
+
+Proper garbage collection implemented to clean up after each problem has been
+solved. See
+
+http://cgm.cs.mcgill.ca/~avis/C/lrslib/lrslib.html 
+
+for documentation.
+
+-------------------------------------------------------------------------------
 2000.6.14
 
 Various binaries are available in the directory binaries.
@@ -13,12 +38,8 @@ binaries/win98         Windows 95/98
 ------------------------------------------------------------------------------
 2000.6.14
 
-Dear Colleagues: This is a preliminary version of lrslib v.4.0 which
+lrslib v.4.0 which
 supercedes all previous versions of the programs lrs and redund.
-Documentation is currently being maintained at the URL:
-
-http://www.lab2.kuis.kyoto-u.ac.jp/~avis/lrs.html
-
 New Features:
 ------------
 
@@ -80,7 +101,7 @@ routines. In this case try:
 
 and you should get output resembling the file cube.ext
 
-7. You will file additional test files in the directories: ine and ext
+7. You will find additional test files in the directories: ine and ext
 
 8. For GNU gmp library, edit the makefile to set the INCLUDE and LIB paths for
    the location of the gmp libarary, and type:

@@ -82,6 +82,16 @@ lrs_alloc_mp_vector (long n)
   return p;
 }
 
+void
+lrs_clear_mp_vector (lrs_mp_vector p, long n)
+/* free space allocated to p */
+{
+  long i;
+  for (i=0; i<=n; i++)
+     free (p[i] );
+  free (p);
+}
+
 lrs_mp_matrix 
 lrs_alloc_mp_matrix (long m, long n)
 /* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp numbers */
@@ -105,6 +115,21 @@ lrs_alloc_mp_matrix (long m, long n)
 	a[i][j] = (araw + i * row_width + j * mp_width);
     }
   return a;
+}
+
+void 
+lrs_clear_mp_matrix (lrs_mp_matrix p, long m, long n)
+/* free space allocated to lrs_mp_matrix p */
+{
+  long i;
+
+/* p[0][0] is araw, the actual matrix storage address */
+
+ free(p[0][0]);
+
+ for (i = 0; i < m + 1; i++)
+      free (p[i]);
+ free(p);
 }
 
 /*********************************************************/
@@ -483,7 +508,7 @@ mptodouble (lrs_mp a, double *x)	/* convert lrs_mp to double */
       y = y * BASE;
     }
   if (negative (a))
-    y = (-y);
+    (*x) = -(*x);
 }
 
 void 
@@ -644,9 +669,6 @@ readrat (lrs_mp Na, lrs_mp Da)
   return (TRUE);
 }
 
-/***********************************************************/
-/*  Derived routines, should be implementation independent */
-/********************************************************* */
 
 void 
 addint (lrs_mp a, lrs_mp b, lrs_mp c)	/* compute c=a+b */

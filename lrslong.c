@@ -192,6 +192,12 @@ mptodouble (lrs_mp a, double *x)	/* convert lrs_mp to double */
   (*x) = (*a);
 }
 
+long
+mptoi (lrs_mp a)        /* convert lrs_mp to long */
+{
+  return (*a);
+}
+
 void 
 rattodouble (lrs_mp a, lrs_mp b, double *x)	/* convert lrs_mp rati
 						   onal to double */
@@ -220,7 +226,6 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
   return (TRUE);
 }
 
-
 void 
 readmp (lrs_mp a)		/* read an integer and convert to lrs_mp */
 {
@@ -230,7 +235,7 @@ readmp (lrs_mp a)		/* read an integer and convert to lrs_mp */
 }
 
 void 
-pmp (char *name, lrs_mp Nt)
+pmp (char name[], lrs_mp Nt)
 {
   fprintf (lrs_ofp, "%s", name);
   if (sign (Nt) != NEG)
@@ -285,6 +290,16 @@ lrs_alloc_mp_vector (long n)
   return p;
 }
 
+void
+lrs_clear_mp_vector (lrs_mp_vector p, long n)
+/* free space allocated to p */
+{
+  long i;
+  for (i = 0; i <= n; i++)
+    free (p[i]);
+  free (p);
+}
+
 lrs_mp_matrix 
 lrs_alloc_mp_matrix (long m, long n)
 /* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp numbers */
@@ -308,6 +323,20 @@ lrs_alloc_mp_matrix (long m, long n)
 	a[i][j] = (araw + i * row_width + j * mp_width);
     }
   return a;
+}
+
+void
+lrs_clear_mp_matrix (lrs_mp_matrix p, long m, long n)
+/* free space allocated to lrs_mp_matrix p */
+{
+  long i;
+
+/* p[0][0] is araw, the actual matrix storage address */
+
+ free(p[0][0]);
+
+ for (i = 0; i < m + 1; i++)
+      free (p[i]);
 }
 
 void 

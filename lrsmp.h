@@ -17,7 +17,7 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /******************************************************************************/
-/*  See ftp://mutt.cs.mcgill.ca/pub/C/lrs.html for lrs usage instructions     */
+/*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for lrs usage instructions   */
 /******************************************************************************/
 /* This package contains the extended precision routines used by lrs
    and some other miscellaneous routines. The maximum precision depends on
@@ -111,6 +111,8 @@
 #define DEC2DIG(d) ( (d) % BASE_DIG ? (d)/BASE_DIG+1 : (d)/BASE_DIG)
 #define DIG2DEC(d) ((d)*BASE_DIG)
 
+#include <stdlib.h>
+
 #ifdef SIGNALS
 #include <signal.h>
 #include <unistd.h>
@@ -153,6 +155,9 @@ FILE *lrs_ofp;			/* output file pointer      */
 lrs_mp_t lrs_alloc_mp_t();                      /* dynamic allocation of lrs_mp                  */
 lrs_mp_vector lrs_alloc_mp_vector (long n);	/* allocate lrs_mp_vector for n+1 lrs_mp numbers */
 lrs_mp_matrix lrs_alloc_mp_matrix (long m, long n);	/* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp   */
+
+void lrs_clear_mp_vector (lrs_mp_vector a, long n);
+void lrs_clear_mp_matrix (lrs_mp_matrix a, long m, long n);
 
 long lrs_mp_init (long dec_digits, FILE * lrs_ifp, FILE * lrs_ofp);	/* max number of decimal digits, fps   */
 
@@ -205,6 +210,8 @@ void subint (lrs_mp a, lrs_mp b, lrs_mp c);	/* compute c=a-b                    
 /**********************************/
 /* Miscellaneous functions        */
 /******************************** */
+
+void free (void *);
 
 void lrs_getdigits (long *a, long *b);	/* send digit information to user                         */
 

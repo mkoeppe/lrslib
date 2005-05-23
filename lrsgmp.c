@@ -1,6 +1,6 @@
 /* lrsgmp.c      library code for lrs extended precision arithmetic  */
-/* Version 4.0, April 20,2000                                        */
-/* Copyright: David Avis 2000, avis@cs.mcgill.ca                     */
+/* Version 4.1, April 3, 2001                                        */
+/* Copyright: David Avis 2001, avis@cs.mcgill.ca                     */
 
 /* For gmp package                                                   */
 /* derived from lrslong.c and lrsmp.c                                */
@@ -169,11 +169,6 @@ atoaa (const char *in, char *num, char *den)
     }
 }				/* end of atoaa */
 
-void 
-mptodouble (lrs_mp a, double *x)	/* convert lrs_mp to double */
-{
-  (*x) = mpz_get_d (a);
-}
 
 void 
 rattodouble (lrs_mp a, lrs_mp b, double *x)	/* convert lrs_mp rati
@@ -262,6 +257,16 @@ lrs_alloc_mp_vector (long n)
   return p;
 }
 
+void
+lrs_clear_mp_vector (lrs_mp_vector p, long n)
+/* free space allocated to p */
+{
+  long i;
+  for (i=0; i<=n; i++)
+     lrs_clear_mp (p[i] );
+  free (p);
+}
+
 lrs_mp_matrix 
 lrs_alloc_mp_matrix (long m, long n)
 /* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp numbers */
@@ -280,6 +285,23 @@ lrs_alloc_mp_matrix (long m, long n)
 	lrs_alloc_mp (a[i][j]);
     }
   return a;
+}
+
+void
+lrs_clear_mp_matrix (lrs_mp_matrix p, long m, long n)
+/* free space allocated to p */
+{
+  long i,j;
+  for (i = 0; i < m + 1; i++)
+    {
+      for (j = 0; j < n + 1; j++)
+        lrs_clear_mp (p[i][j]);
+
+      free (p[i]);
+
+    }
+
+  free (p);
 }
 
 void 

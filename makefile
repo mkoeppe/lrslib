@@ -8,18 +8,33 @@
 # make ansi     ansi standard version for 32bit machines without signals handling
 # make nosigs   ansi standard version for 32bit machines without timing/signals handling
 
-# make clean    to clean all executables
+# make demo     compile the demo programs (vanilla machine)
 
 # make gmp      uses gmp arithmetic, set paths for include files *first*
 
-#The following INCLUDE,LIB paths only needed for gmp version
-#INCLUDEDIR = /usr/local/include
-INCLUDEDIR = /labs/cgm/include
-#INCLUDEDIR = /usr/include/gmp2
+# make clean    to clean all executables
 
-LIBDIR     = /usr/local/lib
-#LIBDIR     = /labs/cgm/lib
-#LIBDIR     = /usr/lib
+
+#Select on of the following INCLUDE,LIB paths only needed for gmp version
+
+#linux at mcgill with gmp version 3
+#INCLUDEDIR = /usr/local/include
+#LIBDIR     = /usr/local/lib
+
+#linux at mcgill with gmp version 2
+#INCLUDEDIR = /labs/cgm/gmp2/include
+#LIBDIR     = /labs/cgm/gmp2/lib
+
+
+#TRUE64 at mcgill gmp version 3
+INCLUDEDIR = /labs/cgm/include
+LIBDIR     = /labs/cgm/lib
+
+#TRUE64 at mcgill gmp version 2
+#INCLUDEDIR = /labs/cgm/gmp2/include
+#LIBDIR     = /labs/cgm/gmp2/lib
+
+
 
 all:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer.c
 	gcc -O3 -DTIMES -DSIGNALS -o lrs  lrs.c lrslib.c lrsmp.c
@@ -29,8 +44,8 @@ all:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer
 	gcc -O3 -o buffer buffer.c
 
 gmp:	lrs.c redund.c lrslib.h lrslib.c lrsgmp.h lrsgmp.c
-	gcc -O3 -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrs.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o glrs
-	gcc -O3 -DTIMES -DSIGNALS -DGMP -I${INCLUDEDIR} redund.c lrslib.c lrsgmp.c -L${LIBDIR} -lgmp -o gredund
+	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrs.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o glrs
+	gcc -O3 -static -DTIMES -DSIGNALS -DGMP -I${INCLUDEDIR} redund.c lrslib.c lrsgmp.c -L${LIBDIR} -lgmp -o gredund
 	gcc -O3 -o buffer buffer.c
 
 all64:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer.c
@@ -57,7 +72,31 @@ nosigs:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buf
 lrs:    lrs.c lrslib.c lrslong.c lrsmp.c
 	gcc -Wall -ansi -O3 -o lrs  lrs.c lrslib.c lrsmp.c
 
+fel:    fel.c lrslib.c lrslong.c lrsmp.c
+	gcc -Wall -ansi -O3 -o fel  fel.c lrslib.c lrsmp.c
+	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} fel.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o gfel
+
+nredund:    nredund.c lrslib.c lrslong.c lrsmp.c
+	gcc -Wall -ansi -O3 -o nredund nredund.c lrslib.c lrsmp.c
+
+demo:	lpdemo.c chdemo.c vedemo.c lrslib.c lrslong.c lrsmp.c
+	gcc -Wall -ansi -O3 -o lpdemo lpdemo.c lrslib.c lrsmp.c
+	gcc -Wall -ansi -O3 -o vedemo vedemo.c lrslib.c lrsmp.c
+	gcc -Wall -ansi -O3 -o chdemo chdemo.c lrslib.c lrsmp.c
+
 clean:
 	rm -rf lrs lrs1 redund redund1 buffer glrs gredund
+	rm -rf lramsey glramsey
+	rm -rf foo gfoo
+	rm -rf lpdemo vedemo chdemo
 
+ramsey:	lrslib.c lrsmp.c lrslong.c lramsey.c
+	gcc  -O3 -ansi  -o lramsey lramsey.c lrslib.c lrsmp.c
+	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lramsey.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o glramsey
+
+foo:	foo.c lrslib.h lrslib.c lrsmp.h lrsmp.c
+	gcc -O3 -static -DTIMES -DSIGNALS  foo.c lrslib.c lrsmp.c -L${LIBDIR} -o foo
+
+gfoo:	foo.c lrslib.h lrslib.c lrsgmp.h lrsgmp.c
+	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} foo.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o gfoo
 

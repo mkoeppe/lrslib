@@ -1,9 +1,8 @@
 /* lrslib.h (vertex enumeration using lexicographic reverse search) */
-/* Copyright: David Avis 2000, avis@cs.mcgill.ca                    */
 
 #define TITLE "lrslib "
-#define VERSION "v.4.1, 2001.10.9"
-#define AUTHOR "\n*Copyright (C) 1995,2001, David Avis   avis@cs.mcgill.ca "
+#define VERSION "v.4.2, 2005.6.1"
+#define AUTHOR "\n*Copyright (C) 1995,2005, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -51,6 +50,14 @@ void ptimes ();
 
 #define CALLOC(n,s) xcalloc(n,s,__LINE__,__FILE__)
 
+/* make this include file includable in a C++ file
+   Note that lrsgmp.h should not be inside an extern "C" {} block
+*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*************/
 /* typedefs  */
 /*************/
@@ -89,10 +96,13 @@ typedef struct lrs_dic_struct	/* dynamic dictionary data */
     long m;			/* A has m+1 rows, row 0 is cost row            */
     long m_A;           	/* =m or m-d if nonnegative flag set            */
     long d;			/* A has d+1 columns, col 0 is b-vector         */
+    long d_orig;		/* value of d as A was allocated  (E.G.)        */
     long lexflag;		/* true if lexmin basis for this vertex         */
     long depth;			/* depth of basis/vertex in reverse search tree */
     long i, j;			/* last pivot row and column pivot indices      */
     lrs_mp det;                 /* current determinant of basis                 */
+    lrs_mp objnum;		/* objective numerator value                    */
+    lrs_mp objden;		/* objective denominator value                  */
     long *B, *Row;		/* basis, row location indices                  */
     long *C, *Col;		/* cobasis, column location indices             */
     struct lrs_dic_struct *prev, *next;
@@ -107,9 +117,9 @@ typedef struct lrs_dat		/* global problem data   */
     lrs_mp sumdet;		/* sum of determinants                          */
     lrs_mp Nvolume;		/* volume numerator                             */
     lrs_mp Dvolume;		/* volume denominator                           */
-    lrs_mp objnum;		/* objective numerator value                    */
-    lrs_mp objden;		/* objective denominator value                  */
-
+    lrs_mp boundn;		/* objective bound numerator                    */
+    lrs_mp boundd;		/* objective bound denominator                  */
+    long unbounded;		/* lp unbounded */
     char fname[100];		/* input file name from line 1 of input         */
 
     long *inequality;		/* indices of inequalities corr. to cobasic ind */
@@ -137,6 +147,7 @@ typedef struct lrs_dat		/* global problem data   */
     double cest[4];		/* estimates: 0=rays,1=vert,2=bases,3=vol       */
 /**** flags  **********                         */
     long allbases;		/* TRUE if all bases should be printed          */
+    long bound;                 /* TRUE if upper/lower bound on objective given */
     long debug;
     long dualdeg;		/* TRUE if start dictionary is dual degenerate  */
     long etrace;		/* turn off debug at basis # strace             */
@@ -152,9 +163,11 @@ typedef struct lrs_dat		/* global problem data   */
     long maximize;		/* flag for LP maximization                     */
     long minimize;		/* flag for LP minimization                     */
     long mindepth;		/* do not backtrack above mindepth              */
+    long nash;                  /* TRUE for computing nash equilibria           */
     long nonnegative;		/* TRUE if last d constraints are nonnegativity */
     long polytope;		/* TRUE for facet computation of a polytope     */
     long printcobasis;		/* TRUE if all cobasis should be printed        */
+    long printslack;		/* TRUE if indices of slack inequal. printed    */
     long truncate;              /* TRUE: truncate tree when moving from opt vert*/
     long verbose;               /* FALSE for minimalist output                  */
     long restart;		/* TRUE if restarting from some cobasis         */
@@ -190,14 +203,16 @@ lrs_dat, lrs_dat_p;
 #define EQ 0L               /* constraint is linearity */
 
 
-FILE *lrs_cfp;			/* output file for checkpoint information       */
+extern FILE *lrs_cfp;			/* output file for checkpoint information       */
 
-unsigned long dict_count, dict_limit, cache_tries, cache_misses;
+extern unsigned long dict_count, dict_limit, cache_tries, cache_misses;
+extern lrs_dic *PBnew;    /* we will save Bob's dictionary in getabasis */
+
 
 /*******************************/
 /* functions  for external use */
 /*******************************/
-long lrs_main (int argc, char *argv[]);    /* lrs driver, argv[1]=input file, [2]=output file */
+long lrs_main (int argc, char *argv[]);    /* lrs driver, argv[1]=input file, [argc-1]=output file */
 long redund_main (int argc, char *argv[]); /* redund driver, argv[1]=input file, [2]=output file */
 
 lrs_dat *lrs_alloc_dat (char *name);	/* allocate for lrs_dat structure "name"       */
@@ -207,6 +222,8 @@ void lrs_estimate (lrs_dic * P, lrs_dat * Q);	/* get estimates only             
 
 long lrs_read_dat (lrs_dat * Q, int argc, char *argv[]);	/* read header and set up lrs_dat               */
 long lrs_read_dic (lrs_dic * P, lrs_dat * Q);	/* read input and set up problem and lrs_dic    */
+
+long lrs_checkbound (lrs_dic *P, lrs_dat * Q);  /* TRUE if current objective value exceeds specified bound */
 
 long lrs_getfirstbasis (lrs_dic ** P_p, lrs_dat * Q, lrs_mp_matrix * Lin,long no_output);
 	  /* gets first basis, FALSE if none,P may get changed if lin. space Lin found */
@@ -226,6 +243,7 @@ void lrs_close (char *name);	/* close lrs lib program "name"                 */
 long lrs_init (char *name);	/* initialize lrslib and arithmetic package for prog "name" */
 
 
+void lrs_lpoutput(lrs_dic * P,lrs_dat * Q, lrs_mp_vector output); /* print LP primal and dual solutions */
 void lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col);	/* print cobasis for column col(verted or ray)  */
 void lrs_printoutput (lrs_dat * Q, lrs_mp_vector output);	/* print output array                           */
 void lrs_printrow (char name[], lrs_dat * Q, lrs_mp_vector output, long rowd);
@@ -235,6 +253,7 @@ void lrs_printsol (lrs_dic * P, lrs_dat * Q, long col, long comment);	/* print o
 void lrs_printtotals (lrs_dic * P, lrs_dat * Q);	/* print final totals for lrs                   */
 long lrs_set_digits (long dec_digits );                 /* set lrsmp digits to equiv. of decimal dec_digits */
 long lrs_solvelp (lrs_dic * P, lrs_dat * Q, long maximize);	/* solve primal feas LP:TRUE bounded else FALSE */
+
 
 /*******************************/
 /* functions  for internal use */
@@ -276,6 +295,7 @@ void rescalevolume (lrs_dic * P, lrs_dat * Q, lrs_mp Vnum, lrs_mp Vden);	/* adju
 /* Routines for redundancy checking                */
 /***************************************************/
 
+
 long checkredund (lrs_dic * P, lrs_dat * Q);	/* solve primal lp to check redund of obj fun.    */
 							     /* returns TRUE if redundant, else FALSE          */
 
@@ -298,6 +318,7 @@ void pushQ (lrs_dat * global, long m, long d, long m_A);
 
 void save_basis (lrs_dic * D, lrs_dat * Q);
 lrs_dic *alloc_memory (lrs_dat * Q);
+lrs_dic * lrs_getdic(lrs_dat *Q);
 lrs_dic *new_lrs_dic (long m, long d, long m_A);
 lrs_dic *resize (lrs_dic * P, lrs_dat * Q);
 
@@ -337,4 +358,8 @@ void lrs_set_obj_mp(lrs_dic *P, lrs_dat *Q, lrs_mp_vector num, lrs_mp_vector den
                                               /* same as lrs_set_obj but num/den has lrs_mp type */
 
 
+
 /* end of  lrslib.h (vertex enumeration using lexicographic reverse search) */
+#ifdef __cplusplus
+}
+#endif

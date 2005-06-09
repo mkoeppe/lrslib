@@ -9,6 +9,12 @@
 #include <stdlib.h>
 #include "lrsgmp.h"
 
+long lrs_digits;		/* max permitted no. of digits   */
+long lrs_record_digits;		/* this is the biggest acheived so far.     */
+
+extern FILE *lrs_ifp;			/* input file pointer       */
+extern FILE *lrs_ofp;			/* output file pointer      */
+
 long digits;
 long record_digits;
 
@@ -341,10 +347,15 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
   lrs_digits = 0;		/* not used for gmp arithmetic  */
 
   lrs_alloc_mp(temp1); lrs_alloc_mp(temp2); lrs_alloc_mp(temp3);
-
+#ifndef LRS_QUIET
   printf(" gmp v.%d.%d",__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR);
-
+#endif
   return TRUE;
+}
+
+void lrs_mp_close()
+{
+   lrs_clear_mp(temp1); lrs_clear_mp(temp2); lrs_clear_mp(temp3);
 }
 
 void 

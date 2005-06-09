@@ -1,7 +1,6 @@
 mp5.ine
 *metric polytope on 5 points
 H-representation
-*linearity 4 1 2 3 4
 begin
 40 11 integer
 2 -1 -1 0 0 -1 0 0 0 0 0 
@@ -45,4 +44,3 @@ begin
 2 0 -1 0 -1 0 0 0 0 -1 0 
 2 0 0 -1 -1 0 0 0 0 0 -1 
 end
-project 5 1  4 5 8 10

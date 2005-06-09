@@ -508,7 +508,7 @@ mptodouble (lrs_mp a, double *x)	/* convert lrs_mp to double */
       y = y * BASE;
     }
   if (negative (a))
-    (*x) = -(*x);
+    (*x)= -(*x);
 }
 
 void 

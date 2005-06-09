@@ -1,18 +1,21 @@
 /*************************************************************************/
 /* Author:: Tallman Zacharia Nkgau                                       */
-/* Name:: fel.c v.1.0. (Revision 1)                                      */
+/* Name:: fourier.c v.1.0. (Revision 1)                                  */
 /* Requires:: lrslib.h, lrslib.c lrsmp.c lrsmp.h from lrslib v.4.1.      */
 /* Purpose:: To compute a projection from a higher dimension to a lower  */
 /*           dimension using Fourier Elimination.                        */
 /* Input Requirements:: Uses lrslib/cddlib input file format. Only input */
 /*                      type "integer" or "rational" is accepted. Options*/
 /*                      are restricted to "project" only.                */
+/* Option:                                                               */
+/* project t d_1 d_2 ... d_t                                             */
+/* which projects onto the t dimensions specified                        */
 /*                                                                       */
 /* Output:: Output is written to standard output if no output file is    */
 /*          given. It may optionally include statistics. It is in        */
 /*          lrslib/cddlib format.                                        */
 /*************************************************************************/
-#define USAGE "fel infile [outfile]"
+#define USAGE "fourier infile [outfile]"
 
 /*************************************************************************/
 
@@ -969,7 +972,6 @@ void full_fel(lrs_dic *iP, lrs_dat *iQ, long *variables)
      FILE  *infile, *outfile;
      
      long *proj;                  
-     long row;
      
      /* try opening files */
      if (argc < 2)

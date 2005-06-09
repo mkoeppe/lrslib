@@ -140,17 +140,19 @@ typedef mpz_t **lrs_mp_matrix;
 /*global variables   */
 /*********************/
 
-long lrs_digits;		/* max permitted no. of digits   */
-long lrs_record_digits;		/* this is the biggest acheived so far.     */
+extern long lrs_digits;		/* max permitted no. of digits   */
+extern long lrs_record_digits;		/* this is the biggest acheived so far.     */
 
-FILE *lrs_ifp;			/* input file pointer       */
-FILE *lrs_ofp;			/* output file pointer      */
+#include <stdio.h>
+extern FILE *lrs_ifp;			/* input file pointer       */
+extern FILE *lrs_ofp;			/* output file pointer      */
 
 /*********************************************************/
 /* Initialization and allocation procedures - must use!  */
 /******************************************************* */
 
 long lrs_mp_init (long dec_digits, FILE * lrs_ifp, FILE * lrs_ofp);	/* max number of decimal digits, fps   */
+void lrs_mp_close ();
 
 #define lrs_alloc_mp(a)		(mpz_init (a) )
 #define lrs_clear_mp(a)		(mpz_clear (a) )
@@ -200,8 +202,11 @@ void lrs_getdigits (long *a, long *b);	/* send digit information to user        
 
 void stringcpy (char *s, char *t);	/* copy t to s pointer version                            */
 
+#ifndef __STDC__
 void *calloc ();
 void *malloc ();
+#endif
+
 void *xcalloc (long n, long s, long l, char *f);
 
 void lrs_default_digits_overflow ();

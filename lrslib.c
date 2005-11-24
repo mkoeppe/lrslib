@@ -384,7 +384,11 @@ void lrs_lpoutput(lrs_dic * P,lrs_dat * Q, lrs_mp_vector output)
 	
 
 #ifndef LRS_QUIET
+  lrs_mp Temp1, Temp2;
   long i;
+
+  lrs_alloc_mp (Temp1);
+  lrs_alloc_mp (Temp2);
 
   fprintf (lrs_ofp, "\n*LP solution only requested");
   prat ("\n\n*Objective function has value ", P->objnum, P->objden);
@@ -404,10 +408,14 @@ void lrs_lpoutput(lrs_dic * P,lrs_dat * Q, lrs_mp_vector output)
 	  {
 	        fprintf(lrs_ofp,"y_%ld=",Q->inequality[P->C[i]-Q->lastdv]);
 	        changesign(P->A[0][P->Col[i]]);
-	        prat("",P->A[0][P->Col[i]],P->det);
+                mulint(Q->Lcm[P->Col[i]],P->A[0][P->Col[i]],Temp1);
+                mulint(Q->Gcd[P->Col[i]],P->det,Temp2);
+	        prat("",Temp1,Temp2);
 	        changesign(P->A[0][P->Col[i]]);
           }
   fprintf (lrs_ofp, "\n");
+  lrs_clear_mp (Temp1);
+  lrs_clear_mp (Temp2);
 #endif
  }
 /***********************/
@@ -603,6 +611,7 @@ lrs_alloc_dat (char *name)
   Q->lponly = FALSE;
   Q->maxdepth = MAXD;
   Q->mindepth = -MAXD;
+  Q->maxoutput = 0L;
   Q->nash = FALSE;
   Q->nonnegative = FALSE;
   Q->printcobasis = FALSE;
@@ -1045,11 +1054,18 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 	  fscanf (lrs_ifp, "%ld", &Q->maxdepth);
 	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->maxdepth);
 	}
+
+      if (strcmp (name, "maxoutput") == 0)
+	{
+	  fscanf (lrs_ifp, "%ld", &Q->maxoutput);
+	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->maxoutput);
+	}
       if (strcmp (name, "mindepth") == 0)
 	{
 	  fscanf (lrs_ifp, "%ld", &Q->mindepth);
 	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->mindepth);
 	}
+
       if (strcmp (name, "truncate") == 0)
         {
           fprintf (lrs_ofp, "\n*%s", name);
@@ -1501,6 +1517,9 @@ lrs_getnextbasis (lrs_dic ** D_p, lrs_dat * Q, long backtrack)
   if (backtrack && D->depth == 0)
     return FALSE;                       /* cannot backtrack from root      */
 
+  if (Q->maxoutput > 0 && Q->count[0]+Q->count[1]-Q->hull >= Q->maxoutput)
+     return FALSE;                      /* output limit reached            */
+
   while ((j < d) || (D->B[m] != m))	/*main while loop for getnextbasis */
     {
       if (D->depth >= Q->maxdepth)
@@ -1916,6 +1935,8 @@ lrs_printtotals (lrs_dic * P, lrs_dat * Q)
     fprintf(lrs_ofp,"\n*Tree truncated at each new vertex");
   if (Q->maxdepth < MAXD)
     fprintf (lrs_ofp, "\n*Tree truncated at depth %ld", Q->maxdepth);
+  if (Q->maxoutput > 0L)
+    fprintf (lrs_ofp, "\n*Maximum number of output lines = %ld", Q->maxoutput);
 
 
 #ifdef LONG

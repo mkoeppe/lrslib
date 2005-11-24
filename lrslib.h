@@ -1,7 +1,7 @@
 /* lrslib.h (vertex enumeration using lexicographic reverse search) */
 
 #define TITLE "lrslib "
-#define VERSION "v.4.2, 2005.6.1"
+#define VERSION "v.4.2a, 2005.11.20"
 #define AUTHOR "\n*Copyright (C) 1995,2005, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
@@ -161,6 +161,7 @@ typedef struct lrs_dat		/* global problem data   */
     long lponly;		/* true if only lp solution wanted              */
     long maxdepth;		/* max depth to search to in treee              */
     long maximize;		/* flag for LP maximization                     */
+    long maxoutput;     	/* if positive, maximum number of output lines  */
     long minimize;		/* flag for LP minimization                     */
     long mindepth;		/* do not backtrack above mindepth              */
     long nash;                  /* TRUE for computing nash equilibria           */

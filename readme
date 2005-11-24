@@ -4,6 +4,13 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/lrs.html
 -----------------------------------------------------------------------------
+2005.11.20
+Version 4.2a
+
+Bug fixed relating to miscaled lp dual variables output when lponly set
+
+maxoutput n   Option limits output lines to n: either rays+vertices, or facets
+
 2005.6.1
 Version 4.2 with two new drivers:
 

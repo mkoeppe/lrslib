@@ -10,8 +10,8 @@
 <body alink="#ff0000" link="#0000ef" text="#000000" vlink="#55188a">
 <div style="text-align: left;"></div>
 <ul>
-  <h3> &nbsp;User's Guide for lrs - Version 4.2</h3>
-  <h3> <font size="+0">June 1, 2005
+  <h3> &nbsp;User's Guide for lrs - Version 4.2a</h3>
+  <h3> <font size="+0">November 20, 2005
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 Copyright(C) 2005
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a
@@ -54,8 +54,19 @@ Point Enumeration and Redundant Inequalities</a> </li>
 Troubleshooting</a> </li>
 <li> <a href="#Hints%20and%20Comments">Hints and Comments</a> </li>
 <li> <a href="#Acknowledgements">Acknowledgements and References<br>
-  <br>
   </a>
+  <hr style="width: 100%; height: 2px;"><a
+ href="../../../%7Eavis/C/lrslib/USERGUIDE.html#Acknowledgements"><br>
+  </a>
+  <h3>What's New in Version 4.2a</h3>
+</li>
+<li>Bug fixed relating to mis-scaled lp dual variables output when <span
+ style="color: rgb(0, 0, 153);">lponly</span> set<br>
+  <br>
+maxoutput n&nbsp;&nbsp; Option limits output lines to n: either
+rays+vertices, or facets<br>
+  <br>
+  <a href="#Acknowledgements"> </a>
   <h3><a name="v4.2"></a>What's New in Version 4.2<br>
   </h3>
 </li>
@@ -743,7 +754,13 @@ Programming</a></div>
 <ul>
   <font color="#000000"> </font>
 </ul>
-<font color="#000066">&nbsp;<b>mindepth k</b></font>
+<font color="#000066">maxoutput n&nbsp;&nbsp;&nbsp; // from Version
+4.2a //<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>Limits number of output
+lines produced (either vertices+rays or facets) to n<font
+ color="#000066"><br>
+<b><br>
+mindepth k</b></font>
 <ul>
   <font color="#000066">&nbsp;</font><font color="#000000">Backtracking
 will be terminated at depth k, for k a non-negative integer. This can

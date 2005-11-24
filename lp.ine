@@ -3,12 +3,14 @@ cube
 H-representation
 begin
 6  4 rational
-1 1 0 0
-1 0 1 0
-1 0 0 1
-1 -1 0 0
+2/4 -2/4 4/10 -6/12
 1 0 -1 0
 1 0 0 -1
-1 0 0 -1
+0 1 0 0
+0 0 1 0
+0 0 0 1
 end
-maxoutput 4
+maximize 0 1 1 1
+lponly
+debug
+*verbose

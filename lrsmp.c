@@ -655,9 +655,14 @@ long
 readrat (lrs_mp Na, lrs_mp Da)
  /* read a rational or integer and convert to lrs_mp with base BASE */
  /* returns true if denominator is not one                      */
+ /* returns 999 if premature end of file                        */
 {
   char in[MAXINPUT], num[MAXINPUT], den[MAXINPUT];
   fscanf (lrs_ifp, "%s", in);
+  if(!strcmp(in,"end"))          /*premature end of input file */
+    {
+     return (999L);
+    }
   atoaa (in, num, den);		/*convert rational to num/dem strings */
   atomp (num, Na);
   if (den[0] == '\0')

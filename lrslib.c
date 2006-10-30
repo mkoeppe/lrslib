@@ -1,7 +1,7 @@
 /* lrslib.c     library code for lrs                     */
 
-/* last modified: October 23, 2003                       */
-/* Copyright: David Avis 2003, avis@cs.mcgill.ca         */
+/* last modified: January 19, 2006                       */
+/* Copyright: David Avis 2003,2006 avis@cs.mcgill.ca         */
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -590,7 +590,7 @@ lrs_alloc_dat (char *name)
   Q->runs = 0L;
   Q->seed = 1234L;
   Q->totalnodes = 0L;
-  for (i = 0; i < 4; i++)
+  for (i = 0; i < 10; i++)
     {
       Q->count[i] = 0L;
       Q->cest[i] = 0.0;
@@ -1391,6 +1391,7 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
   if (!primalfeasible (D, Q))
     {
 #ifndef LRS_QUIET
+          fprintf (lrs_ofp, "\nNo feasible solution");
 #endif
      if (Q->nash && Q->verbose )
       {
@@ -1630,15 +1631,19 @@ lrs_getvertex (lrs_dic * P, lrs_dat * Q, lrs_mp_vector output)
   m = P->m;
   d = P->d;
   lexflag = P->lexflag;
-
   if (lexflag || Q->allbases)
     ++(Q->count[1]);
+
   if (Q->debug)
     printA (P, Q);
 
   linint (Q->sumdet, 1, P->det, 1);
   if (Q->getvolume)
+   {
     updatevolume (P, Q);
+    if(Q->verbose)   /* this will print out a triangulation */
+      lrs_printcobasis(P,Q,ZERO);
+   }
 
 
   /*print cobasis if printcobasis=TRUE and count[2] a multiple of frequency */
@@ -1677,6 +1682,8 @@ lrs_getvertex (lrs_dic * P, lrs_dat * Q, lrs_mp_vector output)
       }
 
   reducearray (output, Q->n);
+  if (lexflag && one(output[0]))
+      ++Q->count[4];               /* integer vertex */
 
 
 /* uncomment to print nonzero basic variables 
@@ -1720,6 +1727,10 @@ lrs_getray (lrs_dic * P, lrs_dat * Q, long col, long redcol, lrs_mp_vector outpu
   long hull = Q->hull;
   long n = Q->n;
 
+  long *B = P->B;
+  long *Row = P->Row;
+  long lastdv = Q->lastdv;
+
   if (Q->debug)
     {
       printA (P, Q);
@@ -1762,6 +1773,20 @@ lrs_getray (lrs_dic * P, lrs_dat * Q, long col, long redcol, lrs_mp_vector outpu
 
     }
   reducearray (output, n);
+/* printslack for rays: 2006.10.10 */
+/* printslack inequality indices  */
+
+   if (Q->printslack)
+    {
+       fprintf(lrs_ofp,"\nslack ineq:");
+       for(i=lastdv+1;i<=P->m; i++)
+         {
+           if (!zero(P->A[Row[i]][col]))
+                 fprintf(lrs_ofp," %ld ", Q->inequality[B[i]-lastdv]);
+         }
+    }
+
+
   return TRUE;
 }				/* end of lrs_getray */
 
@@ -1974,7 +1999,7 @@ lrs_printtotals (lrs_dic * P, lrs_dat * Q)
 
       if ((cest[2] > 0) || (cest[0] > 0))
       {
-	fprintf (lrs_ofp, "\n*Estimates: facets=%g bases=%g", count[0] + cest[0], count[2] + cest[2]);
+	fprintf (lrs_ofp, "\n*Estimates: facets=%.0f bases=%.0f", count[0] + cest[0], count[2] + cest[2]);
         if (Q->getvolume)
 	  {
 	    rattodouble (Q->Nvolume, Q->Dvolume, &x);
@@ -1982,17 +2007,24 @@ lrs_printtotals (lrs_dic * P, lrs_dat * Q)
 	      cest[3] = cest[3] / i;	/*adjust for dimension */
 	    fprintf (lrs_ofp, " volume=%g", cest[3] + x);
 	  }
+
       fprintf (lrs_ofp, "\n*Total number of tree nodes evaluated: %ld", Q->totalnodes);
+#ifdef TIMES
+      fprintf (lrs_ofp, "\n*Estimated total running time=%.1f secs ",(count[2]+cest[2])/Q->totalnodes*get_time () );
+#endif
 
       }
-
+/*    Should not happen since we homogenize    */
+/*
       if ( Q-> restart || Q->allbases || (count[0] > 1 && !Q->homogeneous && !Q->polytope))
 	    fprintf (lrs_ofp, "\n*Note! Duplicate facets may be present");
+*/
 
     }
   else         /* output things specific to vertex/ray computation */
     {
       fprintf (lrs_ofp, "\n*Totals: vertices=%ld rays=%ld bases=%ld", count[1], count[0], count[2]);
+      fprintf (lrs_ofp, " integer_vertices=%ld ",count[4]);
 
       if (nredundcol > 0)
         fprintf (lrs_ofp, " linearities=%ld", nredundcol);
@@ -2006,7 +2038,8 @@ lrs_printtotals (lrs_dic * P, lrs_dat * Q)
 
       if ((cest[2] > 0) || (cest[0] > 0))
         {
-	fprintf (lrs_ofp, "\n*Estimates: vertices=%g rays=%g bases=%g", count[1]+cest[1], count[0]+cest[0], count[2]+cest[2]);
+	fprintf (lrs_ofp, "\n*Estimates: vertices=%.0f rays=%.0f", count[1]+cest[1], count[0]+cest[0]);
+	fprintf (lrs_ofp, " bases=%.0f integer_vertices=%.0f ",count[2]+cest[2], count[4]+cest[4]);
 
          if (Q->getvolume)
 	   {
@@ -2016,6 +2049,9 @@ lrs_printtotals (lrs_dic * P, lrs_dat * Q)
 	     fprintf (lrs_ofp, " pseudovolume=%g", cest[3] + x);
 	   }
          fprintf (lrs_ofp, "\n*Total number of tree nodes evaluated: %ld", Q->totalnodes);
+#ifdef TIMES
+         fprintf (lrs_ofp, "\n*Estimated total running time=%.1f secs ",(count[2]+cest[2])/Q->totalnodes*get_time () );
+#endif
         }
 
       if (Q->restart || Q->allbases)        /* print warning  */
@@ -2058,15 +2094,17 @@ lrs_estimate (lrs_dic * P, lrs_dat * Q)
 		   /*get estimate of tree size from current node    */
 		   /*current node is not counted.                   */
 		   /*cest[0]rays [1]vertices [2]bases [3]volume     */
+                   /*    [4] integer vertices                       */
 {
 
+  lrs_mp_vector output;		/* holds one line of output; ray,vertex,facet,linearity */
   lrs_mp Nvol, Dvol;		/* hold volume of current basis */
   long estdepth = 0;		/* depth of basis/vertex in subtree for estimate */
   long i = 0, j = 0, k, nchild, runcount, col;
   double prod = 0.0;
   double cave[] =
-  {0.0, 0.0, 0.0, 0.0};
-  double nvertices, nbases, nrays, nvol;
+  {0.0, 0.0, 0.0, 0.0, 0.0};
+  double nvertices, nbases, nrays, nvol, nivertices;
   long rays = 0;
   double newvol = 0.0;
 /* assign local variables to structures */
@@ -2078,6 +2116,8 @@ lrs_estimate (lrs_dic * P, lrs_dat * Q)
   lrs_alloc_mp(Nvol); lrs_alloc_mp(Dvol);
 /* Main Loop of Estimator */
 
+  output = lrs_alloc_mp_vector (Q->n);	/* output holds one line of output from dictionary     */
+
   for (runcount = 1; runcount <= Q->runs; runcount++)
     {				/* runcount counts number of random probes */
       j = 0;
@@ -2087,6 +2127,7 @@ lrs_estimate (lrs_dic * P, lrs_dat * Q)
       nbases = 0.0;
       nrays = 0.0;
       nvol = 0.0;
+      nivertices =0.0;
       while (nchild != 0)	/* while not finished yet */
 	{
 
@@ -2132,7 +2173,17 @@ lrs_estimate (lrs_dic * P, lrs_dat * Q)
 	      pivot (P, Q, i, j);
 	      update (P, Q, &i, &j);	/*Update B,C,i,j */
 	      if (lexmin (P, Q, ZERO))	/* see if lexmin basis for vertex */
-		nvertices = nvertices + prod;
+                {
+		  nvertices = nvertices + prod;
+                                                    /* integer vertex estimate */
+                  if( lrs_getvertex(P,Q,output))
+                      { --Q->count[1];
+                       if  (one(output[0] ))
+                         { --Q->count[4];
+                           nivertices = nivertices + prod;
+                         }
+                      }
+                }
 
 	      rays = 0;
 	      for (col = 1; col <= d; col++)
@@ -2153,6 +2204,7 @@ lrs_estimate (lrs_dic * P, lrs_dat * Q)
       cave[1] = cave[1] + nvertices;
       cave[2] = cave[2] + nbases;
       cave[3] = cave[3] + nvol;
+      cave[4] = cave[4] + nivertices;
 
 /*  backtrack to root and do it again */
 
@@ -2172,9 +2224,11 @@ lrs_estimate (lrs_dic * P, lrs_dat * Q)
 	}
 
     }				/* end of for loop on runcount */
-  for (i = 0; i < 4; i++)
+  for (i = 0; i < 5; i++)
     cest[i] = cave[i] / Q->runs + cest[i];
+  
   lrs_clear_mp(Nvol); lrs_clear_mp(Dvol);
+  lrs_clear_mp_vector(output, Q->n);
 }				/* end of lrs_estimate  */
 
 
@@ -2520,8 +2574,10 @@ getabasis (lrs_dic * P, lrs_dat * Q, long order[])
 		{
 		  if (Q->debug)
 		    printA (P, Q);
-		  if (Q->verbose)
-		    fprintf (lrs_ofp, "\nInconsistent linearities");
+#ifndef LRS_QUIET
+		  fprintf (lrs_ofp, "\n*Input linearity in row %ld is inconsistent with earlier linearities", order[j]);
+		  fprintf (lrs_ofp, "\n*No feasible solution");
+#endif
 		  return FALSE;
 		}
 	    }			/* end if j < nlinearity */
@@ -2759,10 +2815,12 @@ restartpivots (lrs_dic * P, lrs_dat * Q)
   /* Note that the order of doing the pivots is important, as */
   /* the B and C vectors are reordered after each pivot       */
 
-  for (i = m; i >= d + 1; i--)	/*see if a basic variable should leave */
-    if (Cobasic[B[i]])		/* basic variable must leave  */
+/* code below replaced 2006.10.30 */
+/*
+
+  for (i = m; i >= d + 1; i--)	
+    if (Cobasic[B[i]])	
       {
-	/* find a Cobasic variable that must enter basis */
 	k = d - 1;
 	while ((k >= 0) &&
 	       (zero (A[Row[i]][Col[k]]) || Cobasic[C[k]]))
@@ -2778,7 +2836,36 @@ restartpivots (lrs_dic * P, lrs_dat * Q)
             free(Cobasic);
 	    return FALSE;
 	  }
-      }				/* end of if(Cobasic..  */
+      }
+*/     
+/*end of code that was replaced */	
+
+/* Suggested new code from db starts */
+  i=m;
+  while (i>d){
+    while(Cobasic[B[i]]){
+      k = d - 1;
+      while ((k >= 0) && (zero (A[Row[i]][Col[k]]) || Cobasic[C[k]])){
+       k--;
+      }
+      if (k >= 0)  {
+           /*db asks: should i really be modified here? (see old code) */
+           /*da replies: modifying i only makes is larger, and so      */
+           /*the second while loop will put it back where it was       */
+           /*faster (and safer) as done below                          */
+       long  ii=i;
+       pivot (P, Q, ii, k);
+       update (P, Q, &ii, &k);
+      } else {
+       fprintf (lrs_ofp, "\nInvalid Co-basis - does not have correct rank");
+       free(Cobasic);
+       return FALSE;
+      }
+    }
+    i--;
+  }
+/* Suggested new code from db ends */
+
   if (lexmin (P, Q, ZERO))
     --Q->count[1];		/* decrement vertex count if lexmin */
 /* check restarting from a primal feasible dictionary               */
@@ -3410,7 +3497,7 @@ readlinearity (lrs_dat * Q)	/* read in and check linearity list */
       return (FALSE);
     } 
 
-  Q->linearity  = CALLOC ((Q->nlinearity + 1), sizeof (long));
+  Q->linearity  = CALLOC ((nlinearity + 1), sizeof (long));
 
   for (i = 0; i < nlinearity; i++)
     {
@@ -4124,6 +4211,14 @@ ptimes ()
 	   double_time (rusage.ru_stime),
 	   rusage.ru_maxrss, rusage.ru_majflt, rusage.ru_nswap,
 	   rusage.ru_inblock, rusage.ru_oublock);
+
+}
+
+double get_time()
+{
+  struct rusage rusage;
+  getrusage (RUSAGE_SELF, &rusage);
+  return   ( double_time (rusage.ru_utime));
 
 }
 

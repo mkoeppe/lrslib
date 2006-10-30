@@ -1,8 +1,8 @@
 /* lrslib.h (vertex enumeration using lexicographic reverse search) */
 
 #define TITLE "lrslib "
-#define VERSION "v.4.2a, 2005.11.20"
-#define AUTHOR "\n*Copyright (C) 1995,2005, David Avis   avis@cs.mcgill.ca "
+#define VERSION "v.4.2b, 2006.10.31"
+#define AUTHOR "\n*Copyright (C) 1995,2006, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-/*Ver 4.0*  library version                                      */
+/*Ver 4.2*  library version                                      */
 /******************************************************************************/
 /*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for usage instructions         */
 /******************************************************************************/
@@ -45,6 +45,7 @@
 
 #ifdef TIMES
 void ptimes ();
+double get_time();
 #endif
 
 
@@ -137,14 +138,15 @@ typedef struct lrs_dat		/* global problem data   */
     long n;			/* number of columns in input file              */
     long lastdv;		/* index of last dec. variable after preproc    */
     /* given by inputd-nredundcol                   */
-    long count[4];		/* count[0]=rays [1]=verts. [2]=base [3]=pivots */
+    long count[10];		/* count[0]=rays [1]=verts. [2]=base [3]=pivots */
+                                /* count[4]=integer vertices                    */
     long deepest;		/* max depth ever reached in search             */
     long nredundcol;		/* number of redundant columns                  */
     long nlinearity;		/* number of input linearities                  */
     long totalnodes;		/* count total number of tree nodes evaluated   */
     long runs;			/* probes for estimate function                 */
     long seed;			/* seed for random number generator             */
-    double cest[4];		/* estimates: 0=rays,1=vert,2=bases,3=vol       */
+    double cest[10];		/* ests: 0=rays,1=vert,2=bases,3=vol,4=int vert */
 /**** flags  **********                         */
     long allbases;		/* TRUE if all bases should be printed          */
     long bound;                 /* TRUE if upper/lower bound on objective given */

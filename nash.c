@@ -20,7 +20,8 @@ long lrs_getfirstbasis2 (lrs_dic ** D_p, lrs_dat * Q, lrs_dic *P2orig,
 
 long getabasis2 (lrs_dic * P, lrs_dat * Q, lrs_dic * P2orig, long order[]);
 
-void lrs_nashoutput (lrs_dat * Q, lrs_mp_vector output, long player);
+long lrs_nashoutput (lrs_dat * Q, lrs_mp_vector output, long player);
+                  /* returns TRUE and prints output if not the origin */
 
 int
 main (int argc, char *argv[])
@@ -98,7 +99,8 @@ main (int argc, char *argv[])
   if (!lrs_read_dat (Q2, 2, argv))	/* read first part of problem data to get dimensions   */
     return 1;                   	/* and problem type: H- or V- input representation     */
 
-  free(Q2->linearity);               /* we will start again */
+  if (Q2->nlinearity > 0)
+      free(Q2->linearity);               /* we will start again */
   Q2->linearity  = CALLOC ((Q2->m + 2), sizeof (long));
 
   P2 = lrs_alloc_dic (Q2);	     /* allocate and initialize lrs_dic                     */
@@ -191,9 +193,10 @@ main (int argc, char *argv[])
   lrs_free_dic (P1,Q1);          /* deallocate lrs_dic */
   lrs_free_dat (Q1);             /* deallocate lrs_dat */
 
-  Q2->Qhead = P2;                /* reset this or you crash free_dic */
-  lrs_free_dic (P2,Q2);          /* deallocate lrs_dic */
-  lrs_free_dat (Q2);             /* deallocate lrs_dat */
+/* 2006.10.10 not sure what is going on with three lines below - sometimes crashes */
+/*  Q2->Qhead = P2; */                /* reset this or you crash free_dic */
+/*  lrs_free_dic (P2,Q2); */          /* deallocate lrs_dic */
+/*  lrs_free_dat (Q2); */             /* deallocate lrs_dat */
 
 
   lrs_close ("nash:");
@@ -254,11 +257,12 @@ long nash2_main (int argc, char *argv[], lrs_dic *P1, lrs_dat *Q1, lrs_dic *P2or
            if (!zero(P1->A[P1->Row[i]][0]))
            {
              j =  Q1->inequality[P1->B[i]-Q1->lastdv];
-             if (j < Q1->linearity[0])
+             if (Q1->nlinearity ==0 || j < Q1->linearity[0])
 	         linearity[nlinearity++]= j;
 	   }
          }
 /* add back in the linearity for probs summing to one */
+    if (Q1->nlinearity > 0)
        linearity[nlinearity++]= Q1->linearity[0];
 
 
@@ -334,10 +338,10 @@ long nash2_main (int argc, char *argv[], lrs_dic *P1, lrs_dat *Q1, lrs_dic *P2or
         col=0;
 	if (!prune && lrs_getsolution (P2, Q2, output, col))
 	{
-	    (*numequilib)++;
              if (Q2->verbose)
                   prat(" \np1's obj value: ",P2->objnum,P2->objden);
-	     lrs_nashoutput (Q2, output, 2L);
+	     if (lrs_nashoutput (Q2, output, 2L))
+                (*numequilib)++;
 	}
     }
   while (lrs_getnextbasis (&P2, Q2, prune));
@@ -667,13 +671,28 @@ getabasis2 (lrs_dic * P, lrs_dat * Q, lrs_dic * P2orig, long order[])
 		       i--;
 	            pivot (P, Q, j, k);
 		    update (P, Q, &j, &k);
-                   }
+                  }
 		   else
-                     if(Q->debug || Q->verbose)
-		        fprintf(lrs_ofp,"\n*Couldn't remove linearity i=%ld B[i]=%ld",i,B[i]);		   
+                  {
                      /* this is not necessarily an error, eg. two identical rows/cols in payoff matrix */
+                     if(! zero(A[Row[i]][0]))    /* error condition */
+                       {
+                         if(Q->debug || Q->verbose)
+                              {
+                               fprintf(lrs_ofp,"\n*Infeasible linearity i=%ld B[i]=%ld",i,B[i]);
+                               if (Q->debug)
+                                     printA(P,Q);
+                              }
+                        return(FALSE);
+                       }
+                     if(Q->debug || Q->verbose)
+                       {
+		        fprintf(lrs_ofp,"\n*Couldn't remove linearity i=%ld B[i]=%ld",i,B[i]);		   
+                       }
                    }
-           }
+
+           } /* if linindex */
+    }   /* for i   ..*/
    goto hotstart;
   }
 
@@ -788,7 +807,9 @@ hotstart:
       if (k >= d)
 	{
           if(Q->debug || Q->verbose)
+           {
 	    fprintf (lrs_ofp, "\nCould not remove cobasic index");
+           }
           /* not neccesarily an error as eg., could be repeated row/col in payoff */
 	}
       else
@@ -813,15 +834,24 @@ hotstart:
   return TRUE;
 }				/*  end of getabasis2 */
 
-void
+long
 lrs_nashoutput (lrs_dat * Q, lrs_mp_vector output, long player)
 {
   long i;
-  
+  long origin=TRUE;
+
+/* do not print the origin for either player */
+  for (i = 1; i < Q->n; i++)
+      if(!zero(output[i]))
+         origin=FALSE;
+
+  if (origin)
+      return FALSE;
+
   fprintf (lrs_ofp, "\n%ld ",player);
   for (i = 1; i < Q->n; i++)
-        prat ("", output[i], output[0]);
-    
+             prat ("", output[i], output[0]);
   fflush(lrs_ofp);
-}
+  return TRUE;
+}  /* end lrs_nashoutput */
 

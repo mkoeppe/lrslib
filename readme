@@ -4,12 +4,37 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/lrs.html
 -----------------------------------------------------------------------------
+
+2006.10.31   Modified code for restartpivots, to allow DB to do something.
+             Estimator now provides estimate of running time=time*bases/tree nodes
+             Triangulation printed if getvolume and verbose options used
+-----------------------------------------------------------------------------
+
+2006.10.11   Bug fix for nash, and inclusion of polytope version
+-----------------------------------------------------------------------------
+
+             available by using setupnash2
+-----------------------------------------------------------------------------
+2006.3.1 incidence option now can be used compatibly with printcobasis n 
+-----------------------------------------------------------------------------
+2006.2.14
+Version 4.2b
+
+Bug fixed related to memory allocation for linearity reported by David Haws.
+If you use the linearity option, you should upgrade to this version.
+
+In the case of inconsistent linearities, the first inconsistent linearity
+is now reported before termination.
+
+----------------------------------------------------------------------------
 2005.11.20
 Version 4.2a
 
 Bug fixed relating to miscaled lp dual variables output when lponly set
 
 maxoutput n   Option limits output lines to n: either rays+vertices, or facets
+
+----------------------------------------------------------------------------
 
 2005.6.1
 Version 4.2 with two new drivers:

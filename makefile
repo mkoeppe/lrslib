@@ -35,7 +35,6 @@ LIBDIR     = /labs/cgm/lib
 #LIBDIR     = /labs/cgm/gmp2/lib
 
 
-
 all:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer.c nash.c
 	gcc -O3 -DTIMES -DSIGNALS -o lrs  lrs.c lrslib.c lrsmp.c
 	gcc -O3 -DTIMES -DSIGNALS -o redund  redund.c lrslib.c lrsmp.c
@@ -43,6 +42,7 @@ all:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer
 	gcc -O3 -DTIMES -DSIGNALS -DLONG -o redund1  redund.c lrslib.c lrslong.c
 	gcc -O3 -DLRS_QUIET  -DTIMES -DSIGNALS -o nash nash.c lrslib.c lrsmp.c
 	gcc -O3 -o setupnash setupnash.c lrslib.c lrsmp.c
+	gcc -O3 -o setupnash2 setupnash2.c lrslib.c lrsmp.c
 	gcc -Wall -O3 -o fourier  fourier.c lrslib.c lrsmp.c
 	gcc -O3 -o buffer buffer.c
 
@@ -81,30 +81,30 @@ nosigs:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buf
 lrs:    lrs.c lrslib.c lrslong.c lrsmp.c
 	gcc -Wall -ansi -O3 -o lrs  lrs.c lrslib.c lrsmp.c
 
-nash:    nash.c lrslib.c  lrsmp.c
+nash:    setupnash2.c setupnash.c nash.c lrslib.c  lrsmp.c
 	gcc -Wall -DTIMES -ansi -O3 -o nash nash.c lrslib.c lrsmp.c
-
-setupnash:	setupnash.c lrslib.c lrsmp.c
 	gcc -Wall -o setupnash setupnash.c lrslib.c lrsmp.c
+	gcc -Wall -o setupnash2 setupnash2.c lrslib.c lrsmp.c
 
 fourier:    fourier.c lrslib.c lrslong.c lrsmp.c
 	gcc -Wall -O3 -o fourier  fourier.c lrslib.c lrsmp.c
 	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} fourier.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o gfourier
-
-nredund:    nredund.c lrslib.c lrslong.c lrsmp.c
-	gcc -Wall -ansi -O3 -o nredund nredund.c lrslib.c lrsmp.c
 
 demo:	lpdemo.c chdemo.c vedemo.c lrslib.c lrslong.c lrsmp.c
 	gcc -Wall -ansi -O3 -o lpdemo lpdemo.c lrslib.c lrsmp.c
 	gcc -Wall -ansi -O3 -o vedemo vedemo.c lrslib.c lrsmp.c
 	gcc -Wall -ansi -O3 -o chdemo chdemo.c lrslib.c lrsmp.c
 
+float: float2rat.c rat2float.c lrsmp.c 
+	gcc -DLRSMP -Wall -ansi -o float2rat float2rat.c lrsmp.c
+	gcc -DLRSMP -Wall -ansi -o rat2float rat2float.c lrsmp.c
+
 clean:
 	rm -rf lrs lrs1 redund redund1 buffer glrs gredund
 	rm -rf foo gfoo
 	rm -rf lpdemo vedemo chdemo
 	rm -rf fourier gfourier                   
-	rm -rf nash gnash setupnash
+	rm -rf nash gnash setupnash setupnash2
 
 foo:	foo.c lrslib.h lrslib.c lrsmp.h lrsmp.c
 	gcc -O3 -static -DTIMES -DSIGNALS  foo.c lrslib.c lrsmp.c -L${LIBDIR} -o foo

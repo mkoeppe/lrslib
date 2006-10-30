@@ -193,6 +193,11 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
 {
   char in[MAXINPUT], num[MAXINPUT], den[MAXINPUT];
   fscanf (lrs_ifp, "%s", in);
+  if(!strcmp(in,"end"))          /*premature end of input file */
+    {
+     return (999L);
+    }
+
   atoaa (in, num, den);		/*convert rational to num/dem strings */
   atomp (num, Na);
   if (den[0] == '\0')

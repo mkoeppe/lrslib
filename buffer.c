@@ -5,13 +5,15 @@
 /* defaults:                5000        50                                          */
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #define MAXBUFFER 5000 /*max number of lines in buffer */
 char *line;
 
 int maxline;
-int getline(void);
+int Getline(void);
 void notimpl(char s[]);
 
+int
 main(int argc, char *argv[])
 {
         extern int maxline;
@@ -38,7 +40,7 @@ main(int argc, char *argv[])
 	bufsize= -1;  /*upper index of buffer size*/
         count=-1;     /* count lines output "begin" before "end" minus 1*/
         counton=0;
-	while ( getline() > 0 )
+	while ( Getline() > 0 )
 	{
 		i=0;
                 if(strncmp(line,"end",3)==0) counton=0;
@@ -66,7 +68,7 @@ main(int argc, char *argv[])
 }
 
 /* getline from KR P.32 */
-int getline(void)
+int Getline(void)
 {
 	int c,i;
 	extern int maxline;

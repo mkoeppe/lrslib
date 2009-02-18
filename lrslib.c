@@ -1,7 +1,7 @@
 /* lrslib.c     library code for lrs                     */
 
-/* last modified: January 19, 2006                       */
-/* Copyright: David Avis 2003,2006 avis@cs.mcgill.ca         */
+/* last modified: January 19, 2009                       */
+/* Copyright: David Avis 2003,2009 avis@cs.mcgill.ca         */
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1843,6 +1843,7 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
   long rflag;			/* used to find inequality number for ray column */
 /* assign local variables to structures */
   lrs_mp_matrix A = P->A;
+  lrs_mp Nvol, Dvol;		/* hold rescaled det of current basis */
   long *B = P->B;
   long *C = P->C;
   long *Col = P->Col;
@@ -1856,6 +1857,8 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
   long m=P->m;
   long firstime=TRUE;
   long nincidence;       /* count number of tight inequalities */
+
+  lrs_alloc_mp(Nvol); lrs_alloc_mp(Dvol);
 
   if (hull)
     fprintf (lrs_ofp, "\nF#%ld B#%ld h=%ld vertices/rays ", count[0], count[2], P->depth);
@@ -1907,6 +1910,10 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
   fprintf(lrs_ofp," I#%ld",nincidence);
 
   pmp (" det=", P->det);
+  rescaledet (P, Q, Nvol, Dvol);	/* scales determinant in case input rational */
+  prat(" in_det=",Nvol,Dvol);
+  lrs_clear_mp(Nvol); lrs_alloc_mp(Dvol);
+  
 
 }				/* end of lrs_printcobasis */
 

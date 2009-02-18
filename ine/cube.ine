@@ -10,8 +10,4 @@ begin
 1 0 -1 0
 1 0 0 -1
 end
-verbose
-maxdepth 0
-estimates 10000
-
-
+printcobasis 1

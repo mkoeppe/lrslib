@@ -1,5 +1,5 @@
 # Makefile for lrslib including lrs and redund 
-# 2000.6.14
+# 2008.1.15
 #
 # choose one of the first 4 and gmp if applicable - see README
 #
@@ -35,7 +35,7 @@ LIBDIR     = /labs/cgm/lib
 #LIBDIR     = /labs/cgm/gmp2/lib
 
 
-all:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer.c nash.c
+all:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer.c nash.c 2nash.c 
 	gcc -O3 -DTIMES -DSIGNALS -o lrs  lrs.c lrslib.c lrsmp.c
 	gcc -O3 -DTIMES -DSIGNALS -o redund  redund.c lrslib.c lrsmp.c
 	gcc -O3 -DTIMES -DSIGNALS -DLONG -o lrs1  lrs.c lrslib.c lrslong.c
@@ -45,16 +45,19 @@ all:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer
 	gcc -O3 -o setupnash2 setupnash2.c lrslib.c lrsmp.c
 	gcc -Wall -O3 -o fourier  fourier.c lrslib.c lrsmp.c
 	gcc -O3 -o buffer buffer.c
+	gcc -O3 -o 2nash 2nash.c
 
-gmp:	lrs.c redund.c lrslib.h lrslib.c lrsgmp.h lrsgmp.c nash.c
+gmp:	fourier.c 2gnash.c lrs.c redund.c lrslib.h lrslib.c lrsgmp.h lrsgmp.c nash.c
 	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrs.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o glrs
 	gcc -O3 -static -DTIMES -DSIGNALS -DGMP -I${INCLUDEDIR} redund.c lrslib.c lrsgmp.c -L${LIBDIR} -lgmp -o gredund
 	gcc -O3 -static -DLRS_QUIET -DTIMES -DSIGNALS -DGMP -I${INCLUDEDIR} nash.c lrslib.c lrsgmp.c -L${LIBDIR} -lgmp -o gnash
 	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} fourier.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o gfourier
 	gcc -O3 -o buffer buffer.c
-
-gnash:	lrslib.h lrslib.c lrsgmp.h lrsgmp.c nash.c
+	gcc -O3 -o 2gnash 2gnash.c
+	gcc -O3 -static -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} fourier.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o gfourier
+gnash:	lrslib.h lrslib.c lrsgmp.h lrsgmp.c nash.c 2gnash.c
 	gcc -O3 -static -DLRS_QUIET -DTIMES -DSIGNALS -DGMP -I${INCLUDEDIR} nash.c lrslib.c lrsgmp.c -L${LIBDIR} -lgmp -o gnash
+	gcc -O3 -o 2gnash 2gnash.c
 
 all64:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buffer.c
 	gcc -DTIMES -DSIGNALS -DB64 -O3 -o lrs  lrs.c lrslib.c lrsmp.c
@@ -81,10 +84,11 @@ nosigs:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buf
 lrs:    lrs.c lrslib.c lrslong.c lrsmp.c
 	gcc -Wall -ansi -O3 -o lrs  lrs.c lrslib.c lrsmp.c
 
-nash:    setupnash2.c setupnash.c nash.c lrslib.c  lrsmp.c
+nash:    setupnash2.c setupnash.c nash.c lrslib.c  lrsmp.c 2nash.c
 	gcc -Wall -DTIMES -ansi -O3 -o nash nash.c lrslib.c lrsmp.c
 	gcc -Wall -o setupnash setupnash.c lrslib.c lrsmp.c
 	gcc -Wall -o setupnash2 setupnash2.c lrslib.c lrsmp.c
+	gcc -O3 -o 2nash 2nash.c
 
 fourier:    fourier.c lrslib.c lrslong.c lrsmp.c
 	gcc -Wall -O3 -o fourier  fourier.c lrslib.c lrsmp.c

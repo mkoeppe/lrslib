@@ -63,7 +63,9 @@ void fel_abort(char str[])
 	  }
 	else if (strcmp(line, "linearity")==0)
 	  {
-	    if (!readlinearity(Q))
+          /* disabled 2009.2.5 due to bug in linearity handling */
+	 /*   if (!readlinearity(Q)) */
+              fprintf(lrs_ofp, "\nfourier does not handle linearity option:\n replace each linearity by two inequalities\n");
 	      return (FALSE);
 	  }
 	else if (firstline)

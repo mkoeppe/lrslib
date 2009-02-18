@@ -1,5 +1,5 @@
 /*******************************************************/
-/* nash is driver for compluting all nash equilibria   */
+/* nash is driver for computing all nash equilibria    */
 /* for two person games given by payoff matrices A,B   */
 /* Usage: nash game1 game2 [gameout]                   */
 /* (use setupnash.c to create game1 game2 from A,B     */
@@ -194,14 +194,12 @@ main (int argc, char *argv[])
   lrs_free_dat (Q1);             /* deallocate lrs_dat */
 
 /* 2006.10.10 not sure what is going on with three lines below - sometimes crashes */
-/*  Q2->Qhead = P2; */                /* reset this or you crash free_dic */
-/*  lrs_free_dic (P2,Q2); */          /* deallocate lrs_dic */
-/*  lrs_free_dat (Q2); */             /* deallocate lrs_dat */
+/*  Q2->Qhead = P2;  */               /* reset this or you crash free_dic */
+/*  lrs_free_dic (P2,Q2); */        /* deallocate lrs_dic */
+/*  lrs_free_dat (Q2);  */            /* deallocate lrs_dat */
 
 
   lrs_close ("nash:");
-  printf("\n");
-  fclose(lrs_ofp);
 
   return 0;
 }

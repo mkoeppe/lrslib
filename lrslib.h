@@ -1,8 +1,8 @@
 /* lrslib.h (vertex enumeration using lexicographic reverse search) */
 
 #define TITLE "lrslib "
-#define VERSION "v.4.2b, 2009.2.5"
-#define AUTHOR "\n*Copyright (C) 1995,2009, David Avis   avis@cs.mcgill.ca "
+#define VERSION "v.4.2c, 2010.7.7"
+#define AUTHOR "\n*Copyright (C) 1995,2010, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

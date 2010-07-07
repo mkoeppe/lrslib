@@ -192,7 +192,12 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
 	       /* returns true if denominator is not one       */
 {
   char in[MAXINPUT], num[MAXINPUT], den[MAXINPUT];
-  fscanf (lrs_ifp, "%s", in);
+  if(fscanf (lrs_ifp, "%s", in)==EOF)
+                 {
+                   fprintf (lrs_ofp, "\nInvalid rational input");
+                   exit(1);
+                 }
+
   if(!strcmp(in,"end"))          /*premature end of input file */
     {
      return (999L);
@@ -244,7 +249,12 @@ void
 readmp (lrs_mp a)               /* read an integer and convert to lrs_mp */
 {
   long in;
-  fscanf (lrs_ifp, "%ld", &in);
+  if(fscanf (lrs_ifp, "%ld", &in)==EOF)
+                 {
+                   fprintf (lrs_ofp, "\nInvalid integer input");
+                   exit(1);
+
+                 }
   itomp (in, a);
 }
 

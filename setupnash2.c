@@ -38,7 +38,11 @@ main (int argc, char *argv[])
       else
         printf ("\n*Input taken from file %s", argv[1]);
 
-  fscanf(lrs_ifp,"%ld %ld",&m,&n);
+  if(fscanf(lrs_ifp,"%ld %ld",&m,&n)==EOF)
+     { printf("\nInvalid m,n");
+       return(FALSE);
+     } 
+
 
   if( m > 1000 || n > 1000)
      {

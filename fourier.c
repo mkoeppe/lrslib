@@ -47,7 +47,8 @@ void fel_abort(char str[])
     char ch;
     long firstline = TRUE;
     
-    fscanf(lrs_ifp, "%s", line);
+    if(fscanf(lrs_ifp, "%s", line)==EOF)
+       exit(1);
     while (strcmp(line, "begin") != 0)
       {
 	
@@ -127,7 +128,12 @@ long readHmat(lrs_dic *P, lrs_dat *Q, long *project)
 	    }
 	  if (strcmp(line, "project") == 0)
 	    {
-	      fscanf(lrs_ifp, "%ld", &p);
+	      if(fscanf(lrs_ifp, "%ld", &p)==EOF)
+                {
+                  fprintf(lrs_ofp, "No variables to project.\n");
+                  return (FALSE);
+                }
+
 	      project[0] = p;
 	      if (p <= 0)
 		{

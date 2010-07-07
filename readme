@@ -4,6 +4,24 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/lrs.html
 -----------------------------------------------------------------------------
+2010.5.7  incidence no longer resets printcobasis frequency to zero. 
+          If the printcobasis n option is used, the frequency will be n.
+          Otherwise the default n=0 is used, and cobasis is printed only for lexmin bases.
+-----------------------------------------------------------------------------
+
+2010.4.26 bug when incidence and nonnegative options used together reported by 
+          Jochen Koenemannkfix was fixed. 
+          Bug in fourier reported by Laszlo David for input which is not full
+          dimensional. I am temporarily removing fourier from distribution.
+-----------------------------------------------------------------------------
+2009.12.2 bug fix for redund caused problems in nash, reported by James Heather.
+          Hopefully this new version solves both issues.
+-----------------------------------------------------------------------------
+2009.9.10  bug in redund reported by Alden Walker, when linearities are redundant, has been fixed.
+           It is now under test, so please report any bugs!
+           this bug also can cause printcobasis option to be incorrect for lrs under this condition. 
+           Problems still seem to arise in fourier from time to time, so please report any anomalities.
+-----------------------------------------------------------------------------
 2009.2.5    bug in fourier when using linearity option pointed out by Conor Meagher.  Option disabled.
             2nash driver uses two processors to run nash with input files in both orders.
             terminates when first process terminates. Thanks again to Conor for this.

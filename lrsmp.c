@@ -1,5 +1,6 @@
 /* lrsmp.c     library code for lrs extended precision arithmetic */
-/* Version 4.0b, Feb. 8, 2000                             */
+/* Version 4.0c, August 26, 2009                          */
+/* minor change to check result of fscanf */
 /* Copyright: David Avis 1999, avis@cs.mcgill.ca          */
 
 /* This program is free software; you can redistribute it and/or modify
@@ -647,7 +648,11 @@ readmp (lrs_mp a)
       /* read an integer and convert to lrs_mp with base BASE */
 {
   char in[MAXINPUT];
-  fscanf (lrs_ifp, "%s", in);
+  if(fscanf (lrs_ifp, "%s", in)==EOF)
+                 {
+                   fprintf (lrs_ofp, "\nInvalid integer input"); 
+                   exit(1);
+                 }
   atomp (in, a);
 }
 
@@ -658,7 +663,11 @@ readrat (lrs_mp Na, lrs_mp Da)
  /* returns 999 if premature end of file                        */
 {
   char in[MAXINPUT], num[MAXINPUT], den[MAXINPUT];
-  fscanf (lrs_ifp, "%s", in);
+  if(fscanf (lrs_ifp, "%s", in)==EOF)
+                 {
+                   fprintf (lrs_ofp, "\nInvalid rational input"); 
+                   exit(1);
+                 }
   if(!strcmp(in,"end"))          /*premature end of input file */
     {
      return (999L);

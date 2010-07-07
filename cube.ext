@@ -11,7 +11,3 @@ begin
  1  1 -1 -1 
  1 -1 -1 -1 
 end
-volume
-allbases
-printcobasis
-incidence

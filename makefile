@@ -18,19 +18,10 @@
 #Select one of the following INCLUDE,LIB paths only needed for gmp version
 
 #linux at mcgill with gmp version 3
-#INCLUDEDIR = /usr/local/include
-#LIBDIR     = /usr/local/lib
+INCLUDEDIR = /usr/local/include
+LIBDIR     = /usr/local/lib
 
 #linux at mcgill with gmp version 2
-#INCLUDEDIR = /labs/cgm/gmp2/include
-#LIBDIR     = /labs/cgm/gmp2/lib
-
-
-#TRUE64 at mcgill gmp version 3
-INCLUDEDIR = /labs/cgm/include
-LIBDIR     = /labs/cgm/lib
-
-#TRUE64 at mcgill gmp version 2
 #INCLUDEDIR = /labs/cgm/gmp2/include
 #LIBDIR     = /labs/cgm/gmp2/lib
 
@@ -83,6 +74,9 @@ nosigs:	lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h lrslong.c lrslong.h redund.c buf
 
 lrs:    lrs.c lrslib.c lrslong.c lrsmp.c
 	gcc -Wall -ansi -O3 -o lrs  lrs.c lrslib.c lrsmp.c
+
+redund:    redund.c lrslib.c lrslong.c lrsmp.c
+	gcc -Wall -ansi -O3 -o redund redund.c lrslib.c lrsmp.c
 
 nash:    setupnash2.c setupnash.c nash.c lrslib.c  lrsmp.c 2nash.c
 	gcc -Wall -DTIMES -ansi -O3 -o nash nash.c lrslib.c lrsmp.c

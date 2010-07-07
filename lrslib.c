@@ -1,6 +1,6 @@
 /* lrslib.c     library code for lrs                     */
 
-/* last modified: January 19, 2009                       */
+/* last modified: December 2, 2009                       */
 /* Copyright: David Avis 2003,2009 avis@cs.mcgill.ca         */
 
 /* This program is free software; you can redistribute it and/or modify
@@ -274,13 +274,15 @@ redund_main (int argc, char *argv[])
   d = P->d;
   nlinearity = Q->nlinearity;
   lastdv = Q->lastdv;
+      if (debug)
+	fprintf (lrs_ofp, "\ncheckindex m=%ld, n=%ld, nlinearity=%ld lastdv=%ld", m,d,nlinearity,lastdv);
 
 /* linearities are not considered for redundancy */
 
   for (i = 0; i < nlinearity; i++)
     redineq[Q->linearity[i]] = 2L;
 
-/* rows 0..lastdv are cost, decsion variables, or linearities  */
+/* rows 0..lastdv are cost, decision variables, or linearities  */
 /* other rows need to be tested                                */
 
   for (index = lastdv + 1; index <= m + d; index++)
@@ -686,7 +688,11 @@ lrs_read_dat (lrs_dat * Q, int argc, char *argv[])
 
 
 /* process input file */
-  fscanf (lrs_ifp, "%s", name);
+  if( fscanf (lrs_ifp, "%s", name) == EOF)
+	    {
+	      fprintf (lrs_ofp, "\nNo begin line");
+	      return (FALSE);
+	    }
 
   while (strcmp (name, "begin") != 0)	/*skip until "begin" found processing options */
     {
@@ -840,7 +846,13 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 
     }				/* end of for i=       */
 
-
+/* 2010.4.26 patch */
+  if(Q->nonnegative)    /* set up Gcd and Lcm for nonexistent nongative inequalities */
+      for (i=m+1;i<=m+d;i++)
+          { itomp (ONE, Lcm[i]);
+            itomp (ONE, Gcd[i]);
+          }
+  
   if (Q->homogeneous && Q->verbose)
     {
       fprintf (lrs_ofp, "\n*Input is homogeneous, column 1 not treated as redundant");
@@ -862,7 +874,12 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 	{
 	  long seconds;
 
-	  fscanf (lrs_ifp, "%ld", &seconds);
+	  if(fscanf (lrs_ifp, "%ld", &seconds) == EOF)
+            {
+              fprintf (lrs_ofp, "\nInvalid checkpoint option");
+              return (FALSE);
+            }
+
 #ifdef SIGNALS
 	  if (seconds > 0)
 	    {
@@ -875,7 +892,9 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 
       if (strcmp (name, "debug") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld %ld", &Q->strace, &Q->etrace);
+          Q->etrace =0;
+	  if(fscanf (lrs_ifp, "%ld %ld", &Q->strace, &Q->etrace)==EOF)
+             Q->strace =0;
 	  fprintf (lrs_ofp, "\n*%s from B#%ld to B#%ld", name, Q->strace, Q->etrace);
           Q->verbose=TRUE;
 	  if (Q->strace <= 1)
@@ -899,17 +918,19 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 	  Q->restart = TRUE;
           if(Q->voronoi)
            {
-             fscanf (lrs_ifp, "%ld %ld %ld %ld", &Q->count[1], &Q->count[0], &Q->count[2], &P->depth);
+             if(fscanf (lrs_ifp, "%ld %ld %ld %ld", &Q->count[1], &Q->count[0], &Q->count[2], &P->depth)==EOF)
+               return FALSE;
              fprintf (lrs_ofp, "\n*%s V#%ld R#%ld B#%ld h=%ld data points", name, Q->count[1], Q->count[0], Q->count[2], P->depth);
             }
           else if(hull)
             {
-	     fscanf (lrs_ifp, "%ld %ld %ld", &Q->count[0], &Q->count[2], &P->depth);
+	    if( fscanf (lrs_ifp, "%ld %ld %ld", &Q->count[0], &Q->count[2], &P->depth)==EOF)
 	     fprintf (lrs_ofp, "\n*%s F#%ld B#%ld h=%ld vertices/rays", name, Q->count[0], Q->count[2], P->depth);
             }
           else
             {
-	     fscanf (lrs_ifp, "%ld %ld %ld %ld", &Q->count[1], &Q->count[0], &Q->count[2], &P->depth);
+	     if(fscanf (lrs_ifp, "%ld %ld %ld %ld", &Q->count[1], &Q->count[0], &Q->count[2], &P->depth)==EOF)
+               return FALSE;
 	     fprintf (lrs_ofp, "\n*%s V#%ld R#%ld B#%ld h=%ld facets", name, Q->count[1], Q->count[0], Q->count[2], P->depth);
             }
 	  if (!readfacets (Q, Q->facet))
@@ -1024,7 +1045,9 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 
       if (strcmp (name, "printcobasis") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld", &Q->frequency);
+	  if(fscanf (lrs_ifp, "%ld", &Q->frequency)==EOF)
+/*2010.7.7  set default to zero = print only when outputting vertex/ray/facet */
+             Q->frequency=0;
 	  fprintf (lrs_ofp, "\n*%s", name);
           if (Q->frequency > 0)
             fprintf(lrs_ofp," %ld", Q->frequency);
@@ -1038,7 +1061,8 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 
       if (strcmp (name, "cache") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld", &dict_limit);
+	  if(fscanf (lrs_ifp, "%ld", &dict_limit)==EOF)
+              dict_limit=1;
 	  fprintf (lrs_ofp, "\n*cache %ld", dict_limit);
 	  if (dict_limit < 1)
 	    dict_limit = 1;
@@ -1051,18 +1075,21 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 
       if (strcmp (name, "maxdepth") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld", &Q->maxdepth);
+	  if(fscanf (lrs_ifp, "%ld", &Q->maxdepth)==EOF)
+                    Q->maxdepth=1;
 	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->maxdepth);
 	}
 
       if (strcmp (name, "maxoutput") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld", &Q->maxoutput);
+	  if(fscanf (lrs_ifp, "%ld", &Q->maxoutput)==EOF)
+             Q->maxoutput = 100;
 	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->maxoutput);
 	}
       if (strcmp (name, "mindepth") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld", &Q->mindepth);
+	if( fscanf (lrs_ifp, "%ld", &Q->mindepth)==EOF)
+           Q->mindepth = 0;
 	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->mindepth);
 	}
 
@@ -1093,13 +1120,15 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 
       if (strcmp (name, "seed") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld", &Q->seed);
+	  if(fscanf (lrs_ifp, "%ld", &Q->seed)==EOF)
+               Q->seed = 3142;
 	  fprintf (lrs_ofp, "\n*seed= %ld ", Q->seed);
 	}
 
       if (strcmp (name, "estimates") == 0)
 	{
-	  fscanf (lrs_ifp, "%ld", &Q->runs);
+	  if(fscanf (lrs_ifp, "%ld", &Q->runs)==EOF)
+             Q->runs=1;
 	  fprintf (lrs_ofp, "\n*%ld %s", Q->runs, name);
 	}
 
@@ -1133,7 +1162,8 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
   if (Q->incidence)
     {
       Q->printcobasis = TRUE;
-      Q->frequency    = ZERO;
+/* 2010.5.7    No need to reset this, as it may have been set by printcobasis */
+/*    Q->frequency    = ZERO;                     */                                                      
     }
 
   if (Q->debug)
@@ -1184,7 +1214,7 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
   lastdv = Q->lastdv;
 
   nredundcol = 0L;		/* will be set after getabasis        */
-  nlinearity = Q->nlinearity;	/* may be reset if new linearity read */
+  nlinearity = Q->nlinearity;	/* may be reset if new linearity read or in getabasis*/
   linearity = Q->linearity;
 
   A = D->A;
@@ -1295,6 +1325,8 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
   {
      if (!getabasis (D, Q, inequality))
           return FALSE;
+/* bug fix 2009.12.2 */
+     nlinearity=Q->nlinearity;   /*may have been reset if some lins are redundant*/
   }
   if(Q->debug)
   {
@@ -1910,9 +1942,10 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
   fprintf(lrs_ofp," I#%ld",nincidence);
 
   pmp (" det=", P->det);
-  rescaledet (P, Q, Nvol, Dvol);	/* scales determinant in case input rational */
+      fflush (lrs_ofp);
+  rescaledet (P, Q, Nvol, Dvol); 	/* scales determinant in case input rational */
   prat(" in_det=",Nvol,Dvol);
-  lrs_clear_mp(Nvol); lrs_alloc_mp(Dvol);
+  lrs_clear_mp(Nvol); lrs_clear_mp(Dvol);
   
 
 }				/* end of lrs_printcobasis */
@@ -2265,7 +2298,7 @@ reverse (lrs_dic * P, lrs_dat * Q, long *r, long s)
   if (Q->debug)
     {
       fprintf (lrs_ofp, "\n+reverse: col index %ld C %ld Col %ld ", s, enter, col);
-      fflush (stdout);
+      fflush (lrs_ofp);
     }
   if (!negative (A[0][col]))
     {
@@ -2573,9 +2606,9 @@ getabasis (lrs_dic * P, lrs_dat * Q, long order[])
 	      if (zero (A[Row[i]][0]))
 		{
 #ifndef LRS_QUIET
-		  fprintf (lrs_ofp, "\n*Input linearity in row %ld is redundant--skipped", order[j]);
+		  fprintf (lrs_ofp, "\n*Input linearity in row %ld is redundant--converted to inequality", order[j]);
 #endif
-		  linearity[j] = 0;
+                  linearity[j]=0;
 		}
 	      else
 		{
@@ -2604,6 +2637,7 @@ getabasis (lrs_dic * P, lrs_dat * Q, long order[])
     }
 
   nlinearity = i;
+/* bug fix, 2009.6.27 */    Q->nlinearity = i;
 
 /* column dependencies now can be recorded  */
 /* redundcol contains input column number 0..n-1 where redundancy is */
@@ -3449,7 +3483,8 @@ lreadrat (long *Num, long *Den)
  /* returns true if denominator is not one        */
 {
   char in[MAXINPUT], num[MAXINPUT], den[MAXINPUT];
-  fscanf (lrs_ifp, "%s", in);
+  if(fscanf (lrs_ifp, "%s", in) == EOF)
+     return(FALSE);
   atoaa (in, num, den);         /*convert rational to num/dem strings */
   *Num = atol (num);
   if (den[0] == '\0')
@@ -3497,7 +3532,11 @@ readlinearity (lrs_dat * Q)	/* read in and check linearity list */
 {
   long i, j;
   long nlinearity;
-  fscanf (lrs_ifp, "%ld", &nlinearity);
+  if(fscanf (lrs_ifp, "%ld", &nlinearity)==EOF )
+    {
+      fprintf (lrs_ofp, "\nLinearity option invalid, no indices ");
+      return (FALSE);
+    } 
   if (nlinearity < 1)
     {
       fprintf (lrs_ofp, "\nLinearity option invalid, indices must be positive");
@@ -3508,7 +3547,11 @@ readlinearity (lrs_dat * Q)	/* read in and check linearity list */
 
   for (i = 0; i < nlinearity; i++)
     {
-      fscanf (lrs_ifp, "%ld", &j);
+      if(fscanf (lrs_ifp, "%ld", &j)==EOF)
+      {
+      fprintf (lrs_ofp, "\nLinearity option invalid, missing indices");
+      return (FALSE);
+      } 
       Q->linearity[i] = j;	
 
     }
@@ -3535,13 +3578,27 @@ readfacets (lrs_dat * Q, long facet[])
 
   for (j = Q->nlinearity; j < d; j++)	/* note we place these after the linearity indices */
     {
-      fscanf (lrs_ifp, "%ld", &facet[j]);
+      if(fscanf (lrs_ifp, "%ld", &facet[j])==EOF)
+        {
+      fprintf (lrs_ofp, "\nrestart: facet list missing indices");                 
+      return (FALSE);
+      }
+
+
       fprintf (lrs_ofp, " %ld", facet[j]);
-      if (facet[j] < 1 || facet[j] > m)
-	{
+/* 2010.4.26 nonnegative option needs larger range of indices */
+      if(Q->nonnegative)
+         if (facet[j] < 1 || facet[j] > m+d)
+	  {
+	  fprintf (lrs_ofp, "\n Start/Restart cobasic indices must be in range 1 .. %ld ", m+d);
+	  return FALSE;
+	  }
+      if(!Q->nonnegative)
+         if (facet[j] < 1 || facet[j] > m)
+	  {
 	  fprintf (lrs_ofp, "\n Start/Restart cobasic indices must be in range 1 .. %ld ", m);
 	  return FALSE;
-	}
+	  }
       for (i = 0; i < Q->nlinearity; i++)
 	if (linearity[i] == facet[j])
 	  {
@@ -4326,6 +4383,15 @@ lrs_set_row_mp(lrs_dic *P, lrs_dat *Q, long row, lrs_mp_vector num, lrs_mp_vecto
       Q->linearity[Q->nlinearity]=row;
       Q->nlinearity++;
      }
+
+/* 2010.4.26   Set Gcd and Lcm for the non-existant rows when nonnegative set */
+
+
+  if(Q->nonnegative && row==m)
+      for(j=1;j<=d;j++)
+         { itomp (ONE, Lcm[m+j]);
+           itomp (ONE, Gcd[m+j]);
+         }
 
 
   lrs_clear_mp_vector (oD,d);

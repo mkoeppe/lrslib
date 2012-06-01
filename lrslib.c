@@ -1,7 +1,9 @@
 /* lrslib.c     library code for lrs                     */
 
-/* last modified: December 2, 2009                       */
-/* Copyright: David Avis 2003,2009 avis@cs.mcgill.ca         */
+/* last modified: 2012.6.1                               */
+/* truncate needs mod to supress last pivot */
+/* need to add a test for non-degenerate pivot step in reverse I guess */
+/* Copyright: David Avis 2003,2011 avis@cs.mcgill.ca         */
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -638,6 +640,8 @@ lrs_alloc_dat (char *name)
   itomp (ZERO, Q->Nvolume);
   itomp (ONE, Q->Dvolume);
   itomp (ZERO, Q->sumdet);
+/* 2012.6.1 */
+  Q->unbounded = FALSE;
 
   return Q;
 }				/* end of allocate and initialize lrs_dat */
@@ -1564,8 +1568,8 @@ lrs_getnextbasis (lrs_dic ** D_p, lrs_dat * Q, long backtrack)
 	    return FALSE;	/* no nextbasis  */
 	}
 
-      if ( Q->truncate && negative(D->A[0][0]))   /* truncate when moving from opt. vertex */
-          backtrack = TRUE;
+/*      if ( Q->truncate && negative(D->A[0][0]))*/   /* truncate when moving from opt. vertex */
+/*          backtrack = TRUE;    2011.7.14 */
 
       if (backtrack)		/* go back to prev. dictionary, restore i,j */
 	{
@@ -1598,11 +1602,11 @@ lrs_getnextbasis (lrs_dic ** D_p, lrs_dat * Q, long backtrack)
 
       /* try to go down tree */
 
-      while ((j < d) && !reverse (D, Q, &i, j))
+/* 2011.7.14 patch */
+      while ((j < d) && (!reverse (D, Q, &i, j) || (Q->truncate && Q->minratio[D->m]==1)))
 	j++;
-      if (j == d)
+      if (j == d )
 	backtrack = TRUE;
-
       else
 	/*reverse pivot found */
 	{
@@ -2304,6 +2308,7 @@ reverse (lrs_dic * P, lrs_dat * Q, long *r, long s)
     {
       if (Q->debug)
 	fprintf (lrs_ofp, " Pos/Zero Cost Coeff");
+      Q->minratio[P->m]=0;  /* 2011.7.14 */
       return (FALSE);
     }
 
@@ -2312,6 +2317,7 @@ reverse (lrs_dic * P, lrs_dat * Q, long *r, long s)
     {
       if (Q->debug)
 	fprintf (lrs_ofp, " Pivot col non-negative:  ray found");
+      Q->minratio[P->m]=0;  /* 2011.7.14 */
       return (FALSE);
     }
 
@@ -2334,6 +2340,8 @@ reverse (lrs_dic * P, lrs_dat * Q, long *r, long s)
 		fprintf (lrs_ofp, "\nPositive cost found: index %ld C %ld Col %ld", i, C[i], j);
                 fflush(lrs_ofp);
                }
+              Q->minratio[P->m]=0;  /* 2011.7.14 */
+
 	      return (FALSE);
 	    }
       }
@@ -2949,12 +2957,18 @@ ratio (lrs_dic * P, lrs_dat * Q, long col)	/*find lex min. ratio */
   nstart=0;
   ndegencount=0;
   degencount = 0;
+  minratio[P->m]=1;   /*2011.7.14 non-degenerate pivot flag */
+
   for (j = lastdv + 1; j <= m; j++)
     {
       /* search rows with negative coefficient in dictionary */
       /*  minratio contains indices of min ratio cols        */
       if (negative (A[Row[j]][col]))
+       {
 	minratio[degencount++] = j;
+        if(zero (A[Row[j]][0]))
+          minratio[P->m]=0;   /*2011.7.14 degenerate pivot flag */
+       }
     }				/* end of for loop */
   if (Q->debug)
     {
@@ -3605,7 +3619,10 @@ readfacets (lrs_dat * Q, long facet[])
 	    fprintf (lrs_ofp, "\n Start/Restart cobasic indices should not include linearities");
 	    return FALSE;
 	  }
-      for (i = 0; i < j; i++)
+/* bug fix 2011.8.1  reported by Steven Wu*/
+      for (i = Q->nlinearity; i < j; i++)
+/* end bug fix 2011.8.1 */
+
 	if (facet[i] == facet[j])
 	  {
 	    fprintf (lrs_ofp, "\n  Start/Restart cobasic indices must be distinct");
@@ -4057,6 +4074,7 @@ lrs_alloc_dic (lrs_dat * Q)
   Q->facet = (long *) CALLOC ((unsigned) d + 1, sizeof (long));
   Q->redundcol = CALLOC ((d + 1), sizeof (long));
   Q->minratio = CALLOC ((m + 1), sizeof (long));
+                         /*  2011.7.14  minratio[m]=0 for degen =1 for nondegen pivot*/
   Q->temparray = CALLOC ((unsigned) d + 1, sizeof (long));
 
   Q->inequality[0] = 2L;

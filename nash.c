@@ -60,6 +60,7 @@ main (int argc, char *argv[])
 
   if ( !lrs_init ("\n*nash:"))
     return 1;
+  printf("\n");
   printf(AUTHOR);
 
 /*********************************************************************************/
@@ -497,7 +498,8 @@ lrs_getfirstbasis2 (lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix
     }
   if (nredundcol > 0)
     {
-      *Lin = lrs_alloc_mp_matrix (nredundcol, Q->n);
+      const unsigned int Qn = Q->n;
+      *Lin = lrs_alloc_mp_matrix (nredundcol, Qn);
 
       for (i = 0; i < nredundcol; i++)
 	{
@@ -507,7 +509,10 @@ lrs_getfirstbasis2 (lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix
 	    }
 
 	  if (!removecobasicindex (D, Q, 0L))
-	    return FALSE;
+	    {
+	      lrs_clear_mp_matrix (*Lin, nredundcol, Qn);
+	      return FALSE;
+	    }
 	}
     }				/* end if nredundcol > 0 */
 

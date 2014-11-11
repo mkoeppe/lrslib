@@ -14,7 +14,7 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 /******************************************************************************/
 /*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for lrs usage instructions   */
@@ -26,6 +26,14 @@
    lrs_mp_init(dec_digits) may set a smaller number of dec_digits, and this
    is useful if arrays or matrices will be used.
  */
+
+
+#ifdef PLRS
+#include <string>
+using namespace std;
+#endif
+
+
 
 /***********/
 /* defines */
@@ -98,7 +106,7 @@
 #define decint(a, b)            *(a) = *(a) - *(b)
 #define divint(a, b, c)         *(c) = *(a) / *(b); *(a) = *(a) % *(b)
 #define exactdivint(a,b,c) 	*(c) = *(a) / *(b);
-#define greater(a, b)           (*(a) > *(b) )
+#define mp_greater(a, b)           (*(a) > *(b) )
 #define itomp(in, a)             *(a) =  in 
 #define linint(a, ka, b, kb)    *(a) = *(a) * ka + *(b) * kb
 #define mulint(a, b, c)         *(c) = *(a) * *(b)
@@ -146,11 +154,11 @@ typedef long ***lrs_mp_matrix;
 /*global variables   */
 /*********************/
 
-long lrs_digits;		/* max permitted no. of digits   */
-long lrs_record_digits;		/* this is the biggest acheived so far.     */
+extern long lrs_digits;		/* max permitted no. of digits   */
+extern long lrs_record_digits;		/* this is the biggest acheived so far.     */
 
-FILE *lrs_ifp;			/* input file pointer       */
-FILE *lrs_ofp;			/* output file pointer      */
+extern FILE *lrs_ifp;			/* input file pointer       */
+extern FILE *lrs_ofp;			/* output file pointer      */
 
 /*********************************************************/
 /* Initialization and allocation procedures - must use!  */
@@ -177,8 +185,14 @@ long compare (lrs_mp a, lrs_mp b);	/* a ? b and returns -1,0,1 for <,=,> */
 void gcd (lrs_mp u, lrs_mp v);	/* returns u=gcd(u,v) destroying v                */
 void mptodouble (lrs_mp a, double *x);	/* convert lrs_mp to double                       */
 long mptoi (lrs_mp a);		/* convert lrs_mp to long integer */
-void pmp (char name[], lrs_mp a);       /* print the long precision integer a             */
-void prat (const char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+#ifdef PLRS
+string pmp (char name[], lrs_mp a);	/* print the long precision integer a             */
+string prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+long plrs_readrat (lrs_mp Na, lrs_mp Da, const char * rat);	/* take a rational number and convert to lrs_mp   */
+#else
+void pmp (char name[], lrs_mp a);	/* print the long precision integer a             */
+void prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+#endif
 void readmp (lrs_mp a);		/* read an integer and convert to lrs_mp          */
 long readrat (lrs_mp Na, lrs_mp Da);	/* read a rational or int and convert to lrs_mp   */
 void reduce (lrs_mp Na, lrs_mp Da);	/* reduces Na Da by gcd(Na,Da)                    */

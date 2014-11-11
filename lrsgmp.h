@@ -14,7 +14,7 @@
 
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
-   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
 /******************************************************************************/
 /*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for lrs usage instructions   */
@@ -23,6 +23,12 @@
    and some other miscellaneous routines. It is based on gmp
    and this file is derived from lrsmp.h and lrslong.h
 */
+
+#ifdef PLRS
+#include <string>
+using namespace std;
+#endif
+
 
 #include "gmp.h"
 
@@ -90,7 +96,7 @@
 #define divint(a, b, c)         mpz_tdiv_qr((c),(a),(a),(b))
 #define exactdivint(a, b, c)    mpz_divexact((c),(a),(b))    /*known there is no remainder */          
 #define getfactorial(a, b)      mpz_fac_ui( (a), (b))
-#define greater(a, b)           (mpz_cmp((a),(b))>0 ? ONE : ZERO)
+#define mp_greater(a, b)        (mpz_cmp((a),(b))>0 ? ONE : ZERO)
 #define gcd(a,b)                mpz_gcd((a),(a),(b))
 #define itomp(in, a)            mpz_set_si( (a) , (in) )
 #define mptoi(a)                mpz_get_si( (a) )
@@ -152,7 +158,6 @@ extern FILE *lrs_ofp;			/* output file pointer      */
 /******************************************************* */
 
 long lrs_mp_init (long dec_digits, FILE * lrs_ifp, FILE * lrs_ofp);	/* max number of decimal digits, fps   */
-void lrs_mp_close ();
 
 #define lrs_alloc_mp(a)		(mpz_init (a) )
 #define lrs_clear_mp(a)		(mpz_clear (a) )
@@ -167,8 +172,14 @@ void lrs_clear_mp_matrix (lrs_mp_matrix p, long m, long n); /* clear m by n lrs_
 void atomp (const char s[], lrs_mp a);	/* convert string to lrs_mp integer               */
 long compare (lrs_mp a, lrs_mp b);	/* a ? b and returns -1,0,1 for <,=,>             */
 void linint (lrs_mp a, long ka, lrs_mp b, long kb);     /* compute a*ka+b*kb --> a        */
-void pmp (char name[], lrs_mp a);       /* print the long precision integer a             */
-void prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                */
+#ifdef PLRS
+string pmp (char name[], lrs_mp a);	/* print the long precision integer a             */
+string prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+long plrs_readrat (lrs_mp Na, lrs_mp Da, const char * rat);	/* take a rational number and convert to lrs_mp   */
+#else
+void pmp (char name[], lrs_mp a);	/* print the long precision integer a             */
+void prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+#endif
 void readmp (lrs_mp a);		/* read an integer and convert to lrs_mp          */
 long readrat (lrs_mp Na, lrs_mp Da);	/* read a rational or int and convert to lrs_mp   */
 void reduce (lrs_mp Na, lrs_mp Da);	/* reduces Na Da by gcd(Na,Da)                    */
@@ -212,3 +223,4 @@ void *xcalloc (long n, long s, long l, char *f);
 void lrs_default_digits_overflow ();
 
 /* end of  lrs_mp.h (vertex enumeration using lexicographic reverse search) */
+

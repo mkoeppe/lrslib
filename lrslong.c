@@ -5,12 +5,18 @@
 /* Derived from prs_single.c ( rational arithmetic for lrs and prs)  */
 /* authored by  Ambros Marzetta    Revision 1.2  1998/05/27          */
 
-#include <stdio.h>
+#ifdef PLRS
+#include <sstream>
+#include <iostream>
+#endif
+
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "lrslong.h"
 
-long digits;
-long record_digits;
+long lrs_digits;		/* max permitted no. of digits   */
+long lrs_record_digits;		/* this is the biggest acheived so far.     */
 
 
 #define MAXINPUT 1000		/*max length of any input rational */
@@ -41,8 +47,7 @@ gcd (lrs_mp u, lrs_mp v)
 }				/* gcd */
 
 void 
-lcm (a, b)			/* a = least common multiple of a, b; b is preserved */
-     lrs_mp a, b;
+lcm (lrs_mp a, lrs_mp b)			/* a = least common multiple of a, b; b is preserved */
 {
   lrs_mp u, v;
   copy (u, a);
@@ -100,10 +105,8 @@ comprod (lrs_mp Na, lrs_mp Nb, lrs_mp Nc, lrs_mp Nd)
 }
 
 void 
-linrat (Na, Da, ka, Nb, Db, kb, Nc, Dc)		/* computes Nc/Dc = ka*Na/Da  +kb* Nb/Db
-						   and reduces answer by gcd(Nc,Dc) */
-     lrs_mp Na, Da, Nb, Db, Nc, Dc;
-     long ka, kb;
+linrat (lrs_mp Na, lrs_mp Da, long ka, lrs_mp Nb,  lrs_mp Db, long kb, lrs_mp Nc, lrs_mp Dc)		
+/* computes Nc/Dc = ka*Na/Da  +kb* Nb/Db and reduces answer by gcd(Nc,Dc) */
 {
   lrs_mp c;
   mulint (Na, Db, Nc);
@@ -115,9 +118,8 @@ linrat (Na, Da, ka, Nb, Db, kb, Nc, Dc)		/* computes Nc/Dc = ka*Na/Da  +kb* Nb/D
 
 
 void 
-divrat (Na, Da, Nb, Db, Nc, Dc)	/* computes Nc/Dc = (Na/Da)  / ( Nb/Db )
-				   and reduces answer by gcd(Nc,Dc) */
-     lrs_mp Na, Da, Nb, Db, Nc, Dc;
+divrat (lrs_mp Na, lrs_mp Da, lrs_mp Nb, lrs_mp Db, lrs_mp Nc, lrs_mp Dc)	
+/* computes Nc/Dc = (Na/Da)  / ( Nb/Db ) and reduces answer by gcd(Nc,Dc) */
 {
   mulint (Na, Db, Nc);
   mulint (Da, Nb, Dc);
@@ -126,9 +128,8 @@ divrat (Na, Da, Nb, Db, Nc, Dc)	/* computes Nc/Dc = (Na/Da)  / ( Nb/Db )
 
 
 void 
-mulrat (Na, Da, Nb, Db, Nc, Dc)	/* computes Nc/Dc = Na/Da  * Nb/Db
-				   and reduces answer by gcd(Nc,Dc) */
-     lrs_mp Na, Da, Nb, Db, Nc, Dc;
+mulrat (lrs_mp Na, lrs_mp Da, lrs_mp Nb, lrs_mp Db, lrs_mp Nc, lrs_mp Dc)	
+/* computes Nc/Dc = Na/Da  * Nb/Db and reduces answer by gcd(Nc,Dc) */
 {
   mulint (Na, Nb, Nc);
   mulint (Da, Db, Dc);
@@ -236,6 +237,26 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
   return (TRUE);
 }
 
+#ifdef PLRS
+/* read a rational or integer and convert to lrs_mp with base BASE */
+/* returns true if denominator is not one                      */
+long plrs_readrat (lrs_mp Na, lrs_mp Da, const char* rat)
+{
+  	char in[MAXINPUT], num[MAXINPUT], den[MAXINPUT];
+ 	strcpy(in, rat);
+	atoaa (in, num, den);		/*convert rational to num/dem strings */
+	atomp (num, Na);
+	if (den[0] == '\0')
+	{
+		itomp (1L, Da);
+		return (FALSE);
+	}
+	atomp (den, Da);
+	return (TRUE);
+}
+
+#endif
+
 void 
 readmp (lrs_mp a)		/* read an integer and convert to lrs_mp */
 {
@@ -249,6 +270,47 @@ readmp (lrs_mp a)		/* read an integer and convert to lrs_mp */
   itomp (in, a);
 }
 
+#ifdef PLRS
+
+string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
+{
+
+	//create stream to collect output
+	stringstream ss;
+	string str;
+	
+	lrs_mp Nt, Dt;
+	copy (Nt, Nin);
+	copy (Dt, Din);
+	reduce (Nt, Dt);
+	if (sign (Nt) != NEG)
+		ss<<" ";
+	ss<<name<<*Nt;
+	if (*Dt != 1)
+		ss<<"/"<<*Dt;
+	ss<<" ";
+	//pipe stream to single string
+	str = ss.str();
+	return str;
+}
+
+string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
+{
+	
+	//create stream to collect output
+	stringstream ss;
+	string str;
+
+	ss<<name;
+	if(sign(Nt) != NEG)
+		ss<<" ";
+	ss<<*Nt<<" ";
+
+	//pipe stream to single string
+	str = ss.str();
+	return str;
+}
+#else
 void 
 pmp (char name[], lrs_mp Nt)
 {
@@ -260,7 +322,7 @@ pmp (char name[], lrs_mp Nt)
 }
 
 void 
-prat (const char *name, lrs_mp Nin, lrs_mp Din)
+prat (char name[], lrs_mp Nin, lrs_mp Din)
      /*print the long precision rational Nt/Dt  */
 {
   lrs_mp Nt, Dt;
@@ -274,6 +336,7 @@ prat (const char *name, lrs_mp Nin, lrs_mp Din)
     fprintf (lrs_ofp, "/%ld", *Dt);
   fprintf (lrs_ofp, " ");
 }				/* prat */
+#endif
 
 
 /***************************************************************/
@@ -298,9 +361,9 @@ lrs_alloc_mp_vector (long n)
   lrs_mp_vector p;
   long i;
 
-  p = CALLOC ((n + 1), sizeof (lrs_mp *));
+  p = (long int **) CALLOC ((n + 1), sizeof (lrs_mp *));
   for (i = 0; i <= n; i++)
-    p[i] = CALLOC (1, sizeof (lrs_mp));
+    p[i] = (long int *) CALLOC (1, sizeof (lrs_mp));
 
   return p;
 }
@@ -327,12 +390,12 @@ lrs_alloc_mp_matrix (long m, long n)
   mp_width = lrs_digits + 1;
   row_width = (n + 1) * mp_width;
 
-  araw = calloc ((m + 1) * row_width, sizeof (long));
-  a = calloc ((m + 1), sizeof (lrs_mp_vector));
+  araw = (long int *) calloc ((m + 1) * row_width, sizeof (long));
+  a = (long int ***) calloc ((m + 1), sizeof (lrs_mp_vector));
 
   for (i = 0; i < m + 1; i++)
     {
-      a[i] = calloc ((n + 1), sizeof (lrs_mp *));
+      a[i] = (long int**) calloc ((n + 1), sizeof (lrs_mp *));
 
       for (j = 0; j < n + 1; j++)
 	a[i][j] = (araw + i * row_width + j * mp_width);
@@ -385,8 +448,10 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
 /* max number of decimal digits for the computation */
 /* long int version                                 */
 {
+#ifndef PLRS
   lrs_ifp = fpin;
   lrs_ofp = fpout;
+#endif
   lrs_record_digits = 0;
 
 

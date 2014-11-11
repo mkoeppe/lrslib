@@ -4,6 +4,51 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/lrs.html
 -----------------------------------------------------------------------------
+2014.9.27
+
+lrslib-050 contains a multi-thread version of lrs called plrs. The input/output files for plrs are the
+same as for lrs, however plrs is intended just for vertex or facet enumeration, and other functionality
+of lrs is not available. 
+
+Usage is 
+
+% plrs  <infile> [ <outfile> ] [ -mt <max threads> ] [ -id <initial depth> ]
+
+-mt <max threads> specifies the number parallel threads calling lrs (default 12)
+-id <initial depth> specifies the initial depth of the RS tree to generate before parallelization (default 5)
+
+Setup instructions for plrs.
+
+1. Install boost library from http://www.boost.org/ into prefix/boost151
+
+If you haver root permission, prefix=/usr/include
+However you can install boost locally wherever you like.
+ 
+Instructions for installing the library are located here 
+http://www.boost.org/doc/libs/1_51_0/more/getting_started/unix-variants.html. 
+Look at section 5 for an easy install. 
+***Important: make a note of the path given at the end of the install process ****
+
+2. After the boost library is installed merge the contents of boost-atomic directory (included in lrslib-050) 
+with the corresponding directories in your boost prefix/include/boost151 directory.
+
+3. Update the makefile to include the paths you recorded in step 1. 
+ "make plrs" will make plrs with the gmp library (assuming the gmp library is already installed on that machine). 
+ "make plrsmp" will make plrs with the standard lrsmp arithmetic library and plrs1 with the long integer library. 
+
+-------------------------------------------------------------------------------
+2013.5.22  modification to printcobasis so that the objective value is printed
+------------------------------------------------------------------------------
+2012.9.27  initial release of multithread version of lrs called plrs that uses a wrapper
+           written by Gary Roumanis. It needs the Boost libraries at http://www.boost.org
+
+           plrs setup instructions are in the file readme_plrs
+           I regret that I cannot give any additional support for the correct installation of boost libraries.
+
+           Note: makefile has now changed so that
+          make all              gives gmp arithmetic library
+          make allmp            uses native mp arithmetic if gmp not available
+-----------------------------------------------------------------------------
 2010.5.7  incidence no longer resets printcobasis frequency to zero. 
           If the printcobasis n option is used, the frequency will be n.
           Otherwise the default n=0 is used, and cobasis is printed only for lexmin bases.

@@ -1,0 +1,10 @@
+#!/bin/sh 
+# 
+  cd out_$1
+  i=0                              
+while [ $i -le $2 ]                     
+do
+  cat tmp$i/$1_$i.ext >> $1.ext
+   i=`expr $i + 1`                 # i count by 1
+done
+  sort -u $1.ext > $1.out

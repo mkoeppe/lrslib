@@ -1,0 +1,20 @@
+#!/bin/sh 
+# 
+  mkdir out_$1
+  cp $1 $1.ext out_$1
+  i=0                              
+while [ $i -le $5 ]                     
+do
+   mkdir out_$1/tmp$i
+   mv $1_$i.ine out_$1/tmp$i
+   i=`expr $i + 1`                 # i count by 1
+done
+  cd out_$1
+  i=0                              
+while [ $i -le $5 ]                     
+do
+   cd tmp$i
+   plrs $1_$i.ine $1_$i.ext -id $3 -mt $4 & 
+   i=`expr $i + 1`                 # i count by 1
+   cd ..
+done

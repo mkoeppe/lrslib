@@ -4,6 +4,24 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/lrs.html
 -----------------------------------------------------------------------------
+
+2014.12.4
+
+With gcc 4.8 plrs does not compile. Changed memory ordering (plrs.cpp line 168) from
+plrs_output* consume_list = output_list.exchange(0,boost::memory_order_consume);
+to
+plrs_output* consume_list = output_list.exchange(0,boost::memory_order_acquire);
+
+For more details see here:
+https://bitsharestalk.org/index.php?topic=15.msg14109#msg14109
+
+To get plrsmp to compile I converted the length macro to a function call (conflict with str1.length in lrslib.c line 2792)
+
+2014.12.2
+
+From version 1.56.0 the boost library contains the Atomic library, so boost_atomic is no longer included in the lrs distribution. 
+The instructions below for installing plrs are now simpler.
+
 2014.9.27
 
 lrslib-050 contains a multi-thread version of lrs called plrs. The input/output files for plrs are the
@@ -17,22 +35,19 @@ Usage is
 -mt <max threads> specifies the number parallel threads calling lrs (default 12)
 -id <initial depth> specifies the initial depth of the RS tree to generate before parallelization (default 5)
 
-Setup instructions for plrs.
+Setup instructions for plrs. Use version 1.57.0 or later of the boost libary
 
-1. Install boost library from http://www.boost.org/ into prefix/boost151
+1. Install boost library from http://www.boost.org/ into prefix/boost157
 
-If you haver root permission, prefix=/usr/include
+If you have root permission, prefix=/usr/include  (or just do not specify it)
 However you can install boost locally wherever you like.
  
 Instructions for installing the library are located here 
-http://www.boost.org/doc/libs/1_51_0/more/getting_started/unix-variants.html. 
+http://www.boost.org/doc/libs/1_57_0/more/getting_started/unix-variants.html. 
 Look at section 5 for an easy install. 
 ***Important: make a note of the path given at the end of the install process ****
 
-2. After the boost library is installed merge the contents of boost-atomic directory (included in lrslib-050) 
-with the corresponding directories in your boost prefix/include/boost151 directory.
-
-3. Update the makefile to include the paths you recorded in step 1. 
+2. Update the makefile to include the paths you recorded in step 1. 
  "make plrs" will make plrs with the gmp library (assuming the gmp library is already installed on that machine). 
  "make plrsmp" will make plrs with the standard lrsmp arithmetic library and plrs1 with the long integer library. 
 

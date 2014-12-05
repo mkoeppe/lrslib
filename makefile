@@ -7,18 +7,18 @@
 #make allmp             uses native mp and long arithmetic
 
 #Select a path below to give location of Boost library
+#sony uses gcc-4.8.3 which includes boost library automatically
 #mai64 mai12
-#BOOSTINC = /usr/include/boost152/boost_1_52_0
-#BOOSTLIB = /usr/include/boost152/boost_1_52_0/stage/lib
-
+BOOSTINC = /usr/include/boost_1_57_0
+BOOSTLIB = /usr/include/boost_1_57_0/stage/lib
 
 # mune.mcgill.ca
-#BOOSTINC = /home/cgm/avis/C/ve/boost/boost_1_51_0/
-#BOOSTLIB = /home/cgm/avis/C/ve/boost/boost_1_51_0/stage/lib
+#BOOSTINC = /home/cgm/avis/C/ve/boost/boost_1_57_0/
+#BOOSTLIB = /home/cgm/avis/C/ve/boost/boost_1_57_0/stage/lib
 
 # cgm-server.mcgill.ca
-BOOSTINC = /usr/include/boost151/boost/include/
-BOOSTLIB = /usr/include/boost151/boost/lib/
+#BOOSTINC = /usr/include/boost151/boost/include/
+#BOOSTLIB = /usr/include/boost151/boost/lib/
 
 #Select a path below to give location of gmp library
 
@@ -48,11 +48,11 @@ fourier:	fourier.c lrslib.h lrslib.c lrsgmp.h lrsgmp.c
 
 
 plrs:	  	plrs.cpp plrs.hpp lrslib.c lrslib.h lrsmp.c lrsmp.h
-		g++ -DGMP  -Wall -Wno-write-strings -Wno-sign-compare -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -DGMP -o plrs plrs.cpp lrslib.c lrsgmp.c -lboost_thread -lgmp
+		g++ -DGMP  -Wall -Wno-write-strings -Wno-sign-compare -I${BOOSTINC}  -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -DGMP -o plrs plrs.cpp lrslib.c lrsgmp.c -L${BOOSTLIB} -lboost_thread -lboost_system -lgmp
 
 plrsmp:	  	plrs.cpp plrs.hpp lrslib.c lrslib.h lrsmp.c lrsmp.h
-		g++ -Wall -Wno-write-strings -Wno-sign-compare -Wno-unused-variable -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -lboost_thread -O3 -DPLRS -o plrsmp plrs.cpp lrslib.c lrsmp.c 
-		g++ -Wall -Wno-write-strings -Wno-sign-compare -Wno-unused-variable -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -DLONG -o plrs1 plrs.cpp lrslib.c lrslong.c -lboost_thread
+		g++ -Wall -Wno-write-strings -Wno-sign-compare -Wno-unused-variable -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -DLONG -o plrs1 plrs.cpp lrslib.c lrslong.c -lboost_thread -lboost_system
+		g++ -Wall -Wno-write-strings -Wno-sign-compare -Wno-unused-variable -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -o plrsmp plrs.cpp lrslib.c lrsmp.c  -lboost_thread -lboost_system
 
 allmp:		lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h
 		gcc -Wall -O3 -DTIMES -DSIGNALS -o lrs lrs.c lrslib.c lrsmp.c
@@ -66,4 +66,4 @@ allmp:		lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h
 
 
 clean:		
-		rm -rf 2nash lrs lrs1 redund redund1 nash setnash setnash2 plrs *.o *.exe
+		rm -rf plrs1 plrsmp 2nash lrs lrs1 redund redund1 nash setnash setnash2 plrs *.o *.exe

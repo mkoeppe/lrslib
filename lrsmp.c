@@ -603,6 +603,12 @@ start:
     storesign (a, POS);
 }				/* end of normalize */
 
+long
+length (lrs_mp a)
+{
+/* formerly a macro but conflicts with string length */
+  return ((a[0] > 0) ? a[0] : -a[0]);
+}
 
 long 
 mptoi (lrs_mp a)		/* convert lrs_mp to long integer */

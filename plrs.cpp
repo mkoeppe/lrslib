@@ -165,7 +165,7 @@ void findInitCobasis(){
 void processOutput(){
 	// this will atomically pop everything that has been posted so far.
 	// consume list is a linked list in 'reverse post order'
-	plrs_output* consume_list = output_list.exchange(0,boost::memory_order_consume);
+	plrs_output* consume_list = output_list.exchange(0,boost::memory_order_acquire);
 
 	//Reverse list since order is important when initializing
 	if(initializing){

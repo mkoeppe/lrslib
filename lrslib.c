@@ -1343,6 +1343,7 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 
 
   itomp (ONE, mpone);
+  itomp(10L,mpten);
   itomp (ONE, A[0][0]);
   itomp (ONE, Lcm[0]);
   itomp (ONE, Gcd[0]);
@@ -1501,7 +1502,6 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
               if(dualperturb)   /* apply a perturbation to objective function */
                 {
 	          fprintf (lrs_ofp, " - Objective function perturbed");
-                  itomp(10L,mpten);
                   copy(Temp,mpten);
                   for (j = 0; j <= 10; j++)
                       mulint(mpten,Temp,Temp);
@@ -2789,7 +2789,10 @@ lrs_printtotals (lrs_dic * P, lrs_dat * Q)
 		ss.str("");
 		string str1 = prat("",Q->Nvolume,Q->Dvolume);
 //strip trailing blank introduced by prat
+//for some reason next line fails for mp library !   2014.12.3 so no volume is reported!
+#if (defined(LONG) || defined(GMP))
                 ss << str1.substr (0,str1.length()-1);
+#endif
 		out->data = ss.str(); 
 		post_output(out);
 

@@ -35,7 +35,8 @@ FILE *lrs_cfp;			/* output file for checkpoint information       */
 FILE *lrs_ifp;			/* input file pointer       */
 FILE *lrs_ofp;			/* output file pointer      */
 
-unsigned long dict_count, dict_limit, cache_tries, cache_misses;
+
+static unsigned long dict_count, dict_limit, cache_tries, cache_misses;
 
 /* Variables and functions global to this file only */
 static long lrs_checkpoint_seconds = 0;
@@ -45,9 +46,32 @@ static long lrs_global_count = 0;	/* Track how many lrs_dat records are
 
 static lrs_dat_p *lrs_global_list[MAX_LRS_GLOBALS + 1];
 
+static lrs_dic *new_lrs_dic (long m, long d, long m_A);
+
+
+static void cache_dict (lrs_dic ** D_p, lrs_dat * global, long i, long j);
+static long check_cache (lrs_dic ** D_p, lrs_dat * global, long *i_p, long *j_p);
+static void save_basis (lrs_dic * D, lrs_dat * Q);
 
 static void lrs_dump_state ();
 
+static void pushQ (lrs_dat * global, long m, long d, long m_A);
+
+#ifdef TIMES
+static void ptimes ();
+static double get_time();
+#endif
+
+
+/*******************************/
+/* signals handling            */
+/*******************************/
+#ifdef SIGNALS
+static void checkpoint ();
+static void die_gracefully ();
+static void setup_signals ();
+static void timecheck ();
+#endif
 
 /*******************************/
 /* functions  for external use */
@@ -167,6 +191,17 @@ Q = lrs_alloc_dat ("");	/* allocate and init structure for static problem data *
   do
     {
      prune=lrs_checkbound(P,Q);
+//2015.1.21
+
+// LRS only:  after maxbases reached, generate subtrees that have not been enumerated
+
+     if ((Q->maxbases > 0) &&  (Q->count[2] > Q->maxbases))
+        {
+          prune=TRUE;
+          lrs_printcobasis(P,Q,ZERO);
+          fprintf (lrs_ofp,"*unexplored");
+        }
+
      if (!prune)
       for (col = 0; col <= P->d; col++)
 	if (lrs_getsolution (P, Q, output, col))
@@ -520,6 +555,16 @@ void plrs_read_dic (lrs_dic * P, lrs_dat * Q, std::ifstream &input_file)
 				if(!(ss>>Q->maxoutput)){
 					Q->maxoutput = 100;
 				}
+				
+			}else if(line.find("maxbases") != string::npos){
+				istringstream ss(line);
+				//Trim first word
+				string str;
+				ss >>str;
+				if(!(ss>>Q->maxbases)){
+					Q->maxbases = 1000;
+				}
+				Q->maxbases = 0;   //2015.1.21 disable feature for plrs
 				
 
 			}else if(line.find("mindepth") != string::npos){
@@ -1040,8 +1085,8 @@ lrs_init (char *name)       /* returns TRUE if successful, else FALSE */
   printf (TITLE);
   printf (VERSION);
   printf ("(");
-  printf (BIT);
-  printf (",");
+/*  printf (BIT); */
+/*  printf (","); */
   printf (ARITH);
   if (!lrs_mp_init (ZERO, stdin, stdout))  /* initialize arithmetic */
     return FALSE;
@@ -1145,6 +1190,7 @@ lrs_alloc_dat (const char *name)
   Q->maxdepth = MAXD;
   Q->mindepth = -MAXD;
   Q->maxoutput = 0L;
+  Q->maxbases = 0L;     /* after maxbases have been found unexplored subtrees reported */
   Q->nash = FALSE;
   Q->nonnegative = FALSE;
   Q->printcobasis = FALSE;
@@ -1621,6 +1667,14 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
              Q->maxoutput = 100;
 	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->maxoutput);
 	}
+
+      if (strcmp (name, "maxbases") == 0)
+	{
+	  if(fscanf (lrs_ifp, "%ld", &Q->maxbases)==EOF)
+             Q->maxbases = 1000;
+	  fprintf (lrs_ofp, "\n*%s  %ld", name, Q->maxbases);
+	}
+
       if (strcmp (name, "mindepth") == 0)
 	{
 	if( fscanf (lrs_ifp, "%ld", &Q->mindepth)==EOF)
@@ -4636,7 +4690,7 @@ pimat (lrs_dic * P, long r, long s, lrs_mp Nt, char name[])
 
 /* From here mostly Bremner's handiwork */
 
-void 
+static void
 cache_dict (lrs_dic ** D_p, lrs_dat * global, long i, long j)
 {
 
@@ -4722,7 +4776,7 @@ copy_dict (lrs_dat * global, lrs_dic * dest, lrs_dic * src)
 #define TRACE(s)
 #endif
 
-void 
+static void
 pushQ (lrs_dat * global, long m, long d ,long m_A)
 {
 
@@ -4814,7 +4868,7 @@ lrs_dic *p;
 
 #define NULLRETURN(e) if (!(e)) return NULL;
 
-lrs_dic *
+static lrs_dic *
 new_lrs_dic (long m, long d, long m_A)
 {
   lrs_dic *p;
@@ -4916,7 +4970,7 @@ lrs_free_dat ( lrs_dat *Q )
 }
 
 
-long 
+static long
 check_cache (lrs_dic ** D_p, lrs_dat * global, long *i_p, long *j_p)
 {
 /* assign local variables to structures */
@@ -5068,7 +5122,7 @@ lrs_alloc_dic (lrs_dat * Q)
    It is also used to make sure that in case of overflow, we
    have a valid cobasis to restart from.
  */
-void 
+static void
 save_basis (lrs_dic * P, lrs_dat * Q)
 {
   int i;
@@ -5177,7 +5231,7 @@ print_basis (FILE * fp, lrs_dat * global)
    INT (ctrl-C) ditto
    HUP                     ditto
  */
-void 
+static void
 setup_signals ()
 {
   errcheck ("signal", signal (SIGTERM, die_gracefully));
@@ -5187,7 +5241,7 @@ setup_signals ()
   errcheck ("signal", signal (SIGUSR1, checkpoint));
 }
 
-void 
+static void
 timecheck ()
 {
   lrs_dump_state ();
@@ -5195,14 +5249,14 @@ timecheck ()
   alarm (lrs_checkpoint_seconds);
 }
 
-void 
+static void
 checkpoint ()
 {
   lrs_dump_state ();
   errcheck ("signal", signal (SIGUSR1, checkpoint));
 }
 
-void 
+static void
 die_gracefully ()
 {
   lrs_dump_state ();
@@ -5220,7 +5274,7 @@ die_gracefully ()
 #include <sys/resource.h>
 #define double_time(t) ((double)(t.tv_sec)+(double)(t.tv_usec)/1000000)
 
-void 
+static void
 ptimes ()
 {
   struct rusage rusage;
@@ -5238,7 +5292,7 @@ ptimes ()
 	   rusage.ru_inblock, rusage.ru_oublock);
 }
 
-double get_time()
+static double get_time()
 {
   struct rusage rusage;
   getrusage (RUSAGE_SELF, &rusage);

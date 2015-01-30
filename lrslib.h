@@ -1,7 +1,7 @@
 /* lrslib.hpp (vertex enumeration using lexicographic reverse search) */
 #define TITLE "lrslib "
-#define VERSION "v.5.0a 2014.12.2"
-#define AUTHOR "*Copyright (C) 1995,2014, David Avis   avis@cs.mcgill.ca "
+#define VERSION "v.5.1 2015.1.28"
+#define AUTHOR "*Copyright (C) 1995,2015, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -54,12 +54,6 @@
 #include <unistd.h>
 #define errcheck(s,e) if ((long)(e)==-1L){  perror(s);exit(1);}
 #endif
-
-#ifdef TIMES
-void ptimes ();
-double get_time();
-#endif
-
 
 #define CALLOC(n,s) xcalloc(n,s,__LINE__,__FILE__)
 
@@ -179,6 +173,7 @@ typedef struct lrs_dat			/* global problem data   */
 	long maxdepth;		/* max depth to search to in treee              */
 	long maximize;		/* flag for LP maximization                     */
 	long maxoutput;     	/* if positive, maximum number of output lines  */
+	long maxbases;     	/* if positive, after maxbases unexplored subtrees reported */
 	long minimize;		/* flag for LP minimization                     */
 	long mindepth;		/* do not backtrack above mindepth              */
 	long nash;                  /* TRUE for computing nash equilibria           */
@@ -316,24 +311,10 @@ long checkindex (lrs_dic * P, lrs_dat * Q, long index); /* index=0 non-red.,1 re
 /***************************************************/
 void lrs_free_dic ( lrs_dic *P, lrs_dat *Q);
 void lrs_free_dat ( lrs_dat *Q);
-void cache_dict (lrs_dic ** D_p, lrs_dat * global, long i, long j);
-long check_cache (lrs_dic ** D_p, lrs_dat * global, long *i_p, long *j_p);
 void copy_dict (lrs_dat * global, lrs_dic * dest, lrs_dic * src);
-void pushQ (lrs_dat * global, long m, long d, long m_A);
-void save_basis (lrs_dic * D, lrs_dat * Q);
 lrs_dic *alloc_memory (lrs_dat * Q);
 lrs_dic * lrs_getdic(lrs_dat *Q);
-lrs_dic *new_lrs_dic (long m, long d, long m_A);
 lrs_dic *resize (lrs_dic * P, lrs_dat * Q);
-
-
-/*******************************/
-/* signals handling            */
-/*******************************/
-void checkpoint ();
-void die_gracefully ();
-void setup_signals ();
-void timecheck ();
 
 /*******************************/
 /* utilities                   */

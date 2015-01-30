@@ -1,7 +1,8 @@
+
 cube
 V-representation
 begin
-8 4 rational
+***** 4 rational
  1  1  1  1 
  1 -1  1  1 
  1  1 -1  1 
@@ -11,4 +12,8 @@ begin
  1  1 -1 -1 
  1 -1 -1 -1 
 end
-project 2 2 3
+*Totals: vertices=8 rays=0 bases=8 integer_vertices=8 
+*Dictionary Cache: max size= 4 misses= 0/7   Tree Depth= 3
+*lrs:lrslib v.5.1a 2015.1.21(32bit,lrsgmp.h)
+*0.000u 0.015s 3408Kb 872 flts 0 swaps 0 blks-in 0 blks-out 
+

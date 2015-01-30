@@ -4,6 +4,15 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/lrs.html
 -----------------------------------------------------------------------------
+Current version is lrslib-051 contains minor changes listed below.
+
+2015.1.21
+makefile modified by David Bremner. Please direct any complaints to bremner@unb.ca
+
+New option:
+maxbases n 
+After maxbases have been generated the cobases of the unexplored subtrees are reported.
+Each of these can be restarted as a separate lrs run with suitable mindepth option set
 
 2014.12.4
 
@@ -21,8 +30,11 @@ To get plrsmp to compile I converted the length macro to a function call (confli
 
 From version 1.56.0 the boost library contains the Atomic library, so boost_atomic is no longer included in the lrs distribution. 
 The instructions below for installing plrs are now simpler.
+-----------------------------------------------------------------------------
 
 2014.9.27
+
+lrslib-050 released 
 
 lrslib-050 contains a multi-thread version of lrs called plrs. The input/output files for plrs are the
 same as for lrs, however plrs is intended just for vertex or facet enumeration, and other functionality

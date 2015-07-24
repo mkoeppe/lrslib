@@ -1,6 +1,6 @@
 /* lrslib.hpp (vertex enumeration using lexicographic reverse search) */
 #define TITLE "lrslib "
-#define VERSION "v.5.1 2015.1.28"
+#define VERSION "v.6.0 2015.7.22"   
 #define AUTHOR "*Copyright (C) 1995,2015, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
@@ -26,17 +26,16 @@
 
 
 #ifdef PLRS
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/atomic.hpp>
+#include <algorithm>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <iostream>
 #endif
 
 
 
-#ifdef LONG
+#ifdef LRSLONG
 #define ARITH "lrslong.h"    /* lrs long integer arithmetic package */
 #else
 #ifdef GMP
@@ -173,7 +172,7 @@ typedef struct lrs_dat			/* global problem data   */
 	long maxdepth;		/* max depth to search to in treee              */
 	long maximize;		/* flag for LP maximization                     */
 	long maxoutput;     	/* if positive, maximum number of output lines  */
-	long maxbases;     	/* if positive, after maxbases unexplored subtrees reported */
+	long maxcobases;     	/* if positive, after maxcobasis unexplored subtrees reported */
 	long minimize;		/* flag for LP minimization                     */
 	long mindepth;		/* do not backtrack above mindepth              */
 	long nash;                  /* TRUE for computing nash equilibria           */
@@ -186,6 +185,7 @@ typedef struct lrs_dat			/* global problem data   */
 	long restart;		/* TRUE if restarting from some cobasis         */
 	long strace;		/* turn on  debug at basis # strace             */
 	long voronoi;		/* compute voronoi vertices by transformation   */
+        long subtreesize;       /* in estimate mode, iterates if cob_est >= subtreesize */
 
 	/* Variables for saving/restoring cobasis,  db */
 
@@ -212,17 +212,7 @@ typedef struct lrs_dat			/* global problem data   */
 /* 	PLRS 	*/
 /****************/
 
-struct plrs_output {
-	std::string type;
-	std::string data;
-   	plrs_output* next;
-};
-
-extern boost::mutex			consume_mutex;
-extern boost::condition_variable	consume;
-extern boost::atomic<plrs_output*>	output_list;
-
-void post_output(plrs_output *);
+void post_output(const char *, const char *);
 void plrs_read_dat (lrs_dat * Q, std::ifstream &ff);
 void plrs_read_dic (lrs_dic * P, lrs_dat * Q, std::ifstream &ff);
 void plrs_readfacets (lrs_dat * Q, long facet[], string facets);
@@ -276,7 +266,7 @@ long ismin (lrs_dic * P, lrs_dat * Q, long r, long s); /* test if A[r][s] is a m
 long lexmin (lrs_dic * P, lrs_dat * Q, long col); /* test A to see if current basis is lexmin       */
 void pivot (lrs_dic * P, lrs_dat * Q, long bas, long cob);	/* Qpivot routine for array A  */
 long primalfeasible (lrs_dic * P, lrs_dat * Q);	/* Do dual pivots to get primal feasibility       */
-long ratio (lrs_dic * P, lrs_dat * Q, long col); /* find lex min. ratio  */
+long lrs_ratio (lrs_dic * P, lrs_dat * Q, long col); /* find lex min. ratio  */
 long removecobasicindex (lrs_dic * P, lrs_dat * Q, long k);	/* remove C[k] from problem  */
 long restartpivots (lrs_dic * P, lrs_dat * Q); /* restart problem from given cobasis   */
 long reverse (lrs_dic * P, lrs_dat * Q, long *r, long s); /* TRUE if B[*r] C[s] is a reverse lex-pos pivot  */
@@ -297,6 +287,8 @@ long readfacets (lrs_dat * Q, long facet[]);	/* read and check facet list       
 long readlinearity (lrs_dat * Q);	/* read and check linearity list                  */
 void rescaledet (lrs_dic * P, lrs_dat * Q, lrs_mp Vnum, lrs_mp Vden);	/* rescale determinant to get its volume */
 void rescalevolume (lrs_dic * P, lrs_dat * Q, lrs_mp Vnum, lrs_mp Vden);	/* adjust volume for dimension          */
+long lrs_leaf(lrs_dic *P, lrs_dat *Q);                    /* true if current dictionary is leaf of reverse search tree  */
+
 
 /***************************************************/
 /* Routines for redundancy checking                */

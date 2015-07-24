@@ -3,6 +3,9 @@
 #include <sstream>
 #include <algorithm>
 #include <queue>
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+#include <boost/atomic.hpp>
 #include "lrslib.h"
 #include "plrs.hpp"
 #include <sys/time.h>
@@ -12,8 +15,10 @@
 
 using namespace std;
 
-
 //Synynchrochronization Variables
+boost::mutex                            consume_mutex;
+boost::condition_variable               consume;
+boost::atomic<plrs_output*>             output_list;
 boost::atomic<bool> 	producers_finished(false);
 boost::atomic<bool>	initializing(true);
 boost::mutex		cobasis_list_mutex;
@@ -30,13 +35,16 @@ int INTVERTICIES = 0;
 
 lrs_mp Tnum, Tden, tN, tD, Vnum, Vden;
 
-int INITDEPTH = 5;
+int INITDEPTH = 4;
 int MAXTHREADS = 12;
+int ESTIMATES = 0;
+int SUBTREESIZE = 1000;
 int SETUP = FALSE;   // generate threads but do not run them
 int cobasislistsize = 0;
 string INPUTFILE;
 ofstream OUTSTREAM;
-
+int PLRS_DEBUG=0;
+int PLRS_DEBUG_PHASE1=0;
 
 plrs_output * reverseList(plrs_output* head){
 	plrs_output * last = head, * new_head = NULL;
@@ -59,7 +67,8 @@ void processCobasis(string cobasis){
 	getline(ss, height, ' ');
 
 	//Check if the cobasis is a leaf node
-	if(atoi(height.c_str()) == INITDEPTH){
+//	if(atoi(height.c_str()) == INITDEPTH){
+	if (ESTIMATES || (atoi(height.c_str()) == INITDEPTH) ) { /* FIXME this is wrong */
 		//Remove the following characters
 		char chars[] = "#VRBh=facetsFvertices/rays";
                 unsigned hull = FALSE;
@@ -101,11 +110,11 @@ void copyFile(string infile, string outfile){
 			input_file.close();
 			output_file.close();
 		}else{
-			cout<<"Error reading input file!"<<endl;
+			printf("Error reading input file!\n");
 			exit(1);
 		}
 	}else{
-		cout<<"Error creating temporary file!"<<endl;
+		printf("Error creating temporary file!\n");
 		exit(1);
 	}
 }
@@ -120,12 +129,15 @@ void doWork(int thread_number, string starting_cobasis){
 /* 2013.2.14 mindepth set to zero */
 	out_file<<"mindepth "<< 0 <<endl;
 	out_file<<"restart "<<starting_cobasis<<endl;
+	if (PLRS_DEBUG)
+		out_file<<"printcobasis 1"<<endl;
 	out_file.close();
 
 	char * argv[] = { thread_file };
 	lrs_main(1, argv);
 	//No longer need temporary .ine file so delete it
-	if(remove( thread_file ) != 0 ) cout<<"Error deleting thread file!"<<endl;
+	if(remove( thread_file ) != 0 ) printf("Error deleting thread file!\n");
+	delete[] thread_file;
 }
 
 
@@ -158,7 +170,7 @@ void findInitCobasis(){
 	char * argv[] = {"init_temp.ine"};
 	lrs_main(1, argv);
 	//No longer need temporary ine file so delete it
-	if(remove("init_temp.ine") != 0) cout<<"Error deleting init file!"<<endl;
+	if(remove("init_temp.ine") != 0) printf("Error deleting init file!\n");
 }
 
 
@@ -177,10 +189,14 @@ void processOutput(){
 	while(consume_list){
 
 		if(consume_list->type == "vertex"){
-			OUTSTREAM == NULL ? cout<<consume_list->data<<endl : OUTSTREAM <<consume_list->data<<endl;
+			if (OUTSTREAM == NULL)
+			  printf("%s\n",consume_list->data.c_str()); 
+			else  OUTSTREAM <<consume_list->data<<endl;
 
 		}else if(consume_list->type == "ray"){
-			OUTSTREAM == NULL ? cout<<consume_list->data<<endl : OUTSTREAM <<consume_list->data<<endl;
+			if (OUTSTREAM == NULL)
+			  printf("%s\n",consume_list->data.c_str());
+			else  OUTSTREAM <<consume_list->data<<endl;
 
 		}else if(consume_list->type =="cobasis"){
 			if(initializing){
@@ -188,11 +204,15 @@ void processOutput(){
 				//Note that we will not be piping initial cobasis to output
 				processCobasis(consume_list->data);
 			}else{
-				OUTSTREAM == NULL ? cout<<consume_list->data<<endl : OUTSTREAM <<consume_list->data<<endl;
+				if (OUTSTREAM == NULL)
+				  printf("%s\n",consume_list->data.c_str()); 
+				else  OUTSTREAM <<consume_list->data<<endl;
 			}
 		}else if(consume_list->type =="V cobasis"){
 			if(!initializing){
-				OUTSTREAM == NULL ? cout<<consume_list->data<<endl : OUTSTREAM <<consume_list->data<<endl;
+				if (OUTSTREAM == NULL)
+				  printf("%s\n",consume_list->data.c_str());
+				else  OUTSTREAM <<consume_list->data<<endl;
 			}
 
 
@@ -223,14 +243,23 @@ void processOutput(){
 		}else if(consume_list->type == "options warning"){
 			//Only pipe warnings if initializing otherwise they are displayed multiple times
 			if(initializing){
-				OUTSTREAM == NULL ? cout<<consume_list->data<<endl : OUTSTREAM <<consume_list->data<<endl;
+				if (OUTSTREAM == NULL)
+				  printf("%s\n", consume_list->data.c_str());
+				else OUTSTREAM <<consume_list->data<<endl;
 			}
 		}else if(consume_list->type == "header"){
 			//Only pipe headers if initializing otherwise they are displayed multiple times
 			if(initializing){
-				OUTSTREAM == NULL ? cout<<consume_list->data<<endl : OUTSTREAM <<consume_list->data<<endl;
+				if (OUTSTREAM == NULL)
+				  printf("%s\n", consume_list->data.c_str());
+				else  OUTSTREAM <<consume_list->data<<endl;
 			}
-		}
+		}else if(consume_list->type == "debug"){
+			//Print debug output if it's produced
+			if (OUTSTREAM == NULL)
+			 printf("%s\n", consume_list->data.c_str());
+			else  OUTSTREAM << consume_list->data<<endl;
+			}
 
 		//Free memory of current consume_list node
 		plrs_output* temp = consume_list->next;
@@ -261,7 +290,8 @@ void notifyProducerFinished(){
 
 void initializeStartingCobasis(){
 
-	cout<<"*Max depth of "<<INITDEPTH<<" to initialize starting cobasis list"<<endl;
+	printf("*Max depth of %d to initialize starting cobasis list\n",
+		INITDEPTH);
         if(OUTSTREAM != NULL)
 	    OUTSTREAM <<"*Max depth of "<<INITDEPTH<<" to initialize starting cobasis list"<<endl;
 	
@@ -269,13 +299,28 @@ void initializeStartingCobasis(){
 	copyFile(INPUTFILE, "init_temp.ine");
 	ofstream init_temp_file ("init_temp.ine", ios::app);
 	init_temp_file<<"maxdepth "<<INITDEPTH<<endl;
-	init_temp_file<<"printcobasis 1"<<endl;
+	if (ESTIMATES)
+        {
+                init_temp_file<<"estimates "<<ESTIMATES<<endl;
+		printf("*Estimates %d\n",ESTIMATES);
+                if(OUTSTREAM != NULL)
+	              OUTSTREAM <<"*Estimates "<<ESTIMATES<<endl;
+                if (SUBTREESIZE<1)
+                       SUBTREESIZE=1000;
+	        printf("*Subtreesize %d\n",SUBTREESIZE);
+                init_temp_file<<"subtreesize "<<SUBTREESIZE<<endl;
+                if(OUTSTREAM != NULL)
+	               OUTSTREAM <<"*Subtreesize "<<SUBTREESIZE<<endl;
+        }
+	if (!ESTIMATES || PLRS_DEBUG)
+		init_temp_file<<"printcobasis 1"<<endl;
 	init_temp_file.close();
+	findInitCobasis(); /* 2015.7.14, lrs_main can exit() here if bad input*/
 	boost::thread consumer_init_thread(consumeOutput);
-	boost::thread producer_init_thread(findInitCobasis);
+	//boost::thread producer_init_thread(findInitCobasis);
 
 	//Wait for producer thread to find all cobasis at depth <= 1
-	producer_init_thread.join();
+	//producer_init_thread.join();
 	//Notify init consumer thread that init producer is finished
 	notifyProducerFinished();
 	//wait for init consumer thread to finish building starting cobasis list
@@ -283,7 +328,7 @@ void initializeStartingCobasis(){
 	//finished initialization starting cobasis array
 	initializing = false;
 	producers_finished = false;
-	cout<<"*Finished initializing cobasis list with "<<cobasis_list.size()<<" starting cobases"<<endl;
+	printf("*Finished initializing cobasis list with %lu starting cobases\n", cobasis_list.size());
         cobasislistsize = cobasis_list.size();
 	
 }
@@ -302,10 +347,11 @@ int main(int argc, char* argv[]){
 	gettimeofday(&start, NULL);
 
 	//Print version
-	cout<<"*plrs:"<<TITLE<<VERSION<<"("<<ARITH<<")"<<endl<<AUTHOR<<endl;
+	printf("*plrs:%s%s(%s)",TITLE,VERSION,ARITH);
 
 	string outputfile;
         int firstfile=1;
+	int phase1time=0;
 
 	for (int i = 1; i < argc; i++) {
 			string arg(argv[i]);
@@ -321,9 +367,19 @@ int main(int argc, char* argv[]){
 			} else if (arg == "-id"  && i + 1 <= argc){
 				INITDEPTH = atoi(argv[i+1]);
                                 i++;
+			} else if (arg == "-deb"){
+				PLRS_DEBUG=1;
+			} else if (arg == "-deb1"){
+				PLRS_DEBUG_PHASE1=1;
+			} else if (arg == "-est" && i+1 <=argc){
+				ESTIMATES = atoi(argv[i+1]);
+				i++;
+			} else if (arg == "-st" && i+1 <= argc){
+                                SUBTREESIZE = atoi(argv[i+1]);
+                                i++;
 			} else if (arg == "-set" ){
 				SETUP = TRUE;  // produce threads but do not run them!
-                                i++;
+                                //i++;
 			} else {
                                 if (firstfile==1){
                                   INPUTFILE=string(argv[i]);
@@ -332,38 +388,44 @@ int main(int argc, char* argv[]){
                                   outputfile=string(argv[i]);
                                   firstfile++;
                                 } else {
-                                   cout << "Invalid arguments, please try again."<<endl;
-			           cout << USAGE <<endl;
+                                   printf("Invalid arguments, please try again.\n");
+			           printf("%s\n",USAGE);
 				   exit(0);
 				}
                               }
 
         }
 
+        printf("%d processes\n",MAXTHREADS);
+        printf("%s\n",AUTHOR);
 
 	if(INPUTFILE.empty()){
-		cout<<"No input file.\n";
-		cout<<USAGE<<endl;
+		printf("No input file.\n");
+		printf("%s\n",USAGE);
 		exit(0);
 	}
 
-	cout<<"*Input taken from "<<INPUTFILE<<endl;
+	printf("*Input taken from %s\n",INPUTFILE.c_str());
 
 	if(!outputfile.empty()){
 		OUTSTREAM.open(outputfile.c_str());
 		if(!OUTSTREAM.is_open()){
-			cout<<"Error opening output file!"<<endl;
+			printf("Error opening output file!\n");
 			exit(0);
 		}
-		cout<<"*Output written to: "<<outputfile<<endl;
+		printf("*Output written to: %s\n",outputfile.c_str());
 	}
 	
         if(OUTSTREAM != NULL)
             {
-	     OUTSTREAM <<"*plrs:"<<TITLE<<VERSION<<"("<<ARITH<<")"<<endl<<AUTHOR<<endl;
+	     OUTSTREAM <<"*plrs:"<<TITLE<<VERSION<<"("<<ARITH<<")"<<MAXTHREADS<<" processes"<<endl<<AUTHOR<<endl;
 	     OUTSTREAM <<"*Input taken from "<<INPUTFILE<<endl;
             }
+	if (PLRS_DEBUG_PHASE1)
+		PLRS_DEBUG=1;
 	initializeStartingCobasis();
+	if (PLRS_DEBUG_PHASE1)
+		PLRS_DEBUG=0;
 
         if(SETUP == TRUE)
       { // make thread files but do not run any
@@ -385,7 +447,7 @@ int main(int argc, char* argv[]){
 
 	}
 
-        cout << "*Setup terminates" << endl;
+        printf("*Setup terminates\n");
 	
       } else {
 	//Create one consumer thread to manage output 
@@ -394,9 +456,10 @@ int main(int argc, char* argv[]){
 	boost::thread_group producer_threads;
 
 
-	    cout<<"*Starting "<<MAXTHREADS<<" producer thread(s) and 1 consumer thread"<<endl;
-
-
+	    printf("*Starting %d producer thread(s) and 1 consumer thread\n",MAXTHREADS);
+		gettimeofday(&end, NULL);
+                phase1time = end.tv_sec - start.tv_sec;
+		printf("*Phase 1 time: %d seconds\n",phase1time);
 	    for(int i = 0; i < MAXTHREADS; i++){
 		producer_threads.create_thread(boost::bind(startThread,i));
 	    }
@@ -409,27 +472,33 @@ int main(int argc, char* argv[]){
 	    consumer_thread.join();
        }   
 
-	OUTSTREAM == NULL ? cout<<"end"<<endl : OUTSTREAM <<"end"<<endl;;
+	if (OUTSTREAM == NULL)
+		printf("end\n");
+	else
+		OUTSTREAM <<"end"<<endl;;
         if(OUTSTREAM != NULL)
            {
 	    OUTSTREAM<<"*Finished initializing cobasis list with "<<cobasislistsize<<" starting cobases"<<endl;
 	    OUTSTREAM <<"*Starting "<<MAXTHREADS<<" producer thread(s) and 1 consumer thread"<<endl;
            }
 	if(FACETS > 0){
-                cout<<prat("*Volume=",Vnum,Vden) << endl ;
-		cout<<"*Totals: facets="<<FACETS<<" bases="<<BASIS<< endl ; 
+                printf("%s\n", prat("*Volume=",Vnum,Vden).c_str());
+		printf("*Totals: facets=%d bases=%d\n",FACETS,BASIS);
                 if (OUTSTREAM != NULL) {
                     OUTSTREAM <<prat("*Volume=",Vnum,Vden) << endl ;
                     OUTSTREAM <<"*Totals: facets="<<FACETS<<" bases="<<BASIS<<endl;
                 }
 	}else{
-		cout<<"*Totals: vertices="<<VERTICIES<<" rays="<<RAYS<<" bases="<<BASIS<< " integer-vertices="<<INTVERTICIES<<endl ; 
+		printf("*Totals: vertices=%d rays=%d bases=%d integer-vertices=%d\n",VERTICIES,RAYS,BASIS,INTVERTICIES);
                 if (OUTSTREAM != NULL)
                     OUTSTREAM<<"*Totals: vertices="<<VERTICIES<<" rays="<<RAYS<<" bases="<<BASIS<< " integer-vertices="<<INTVERTICIES<<endl;
 	}
 
+       if(OUTSTREAM != NULL)
+            OUTSTREAM<< "*Phase 1 time: "<< phase1time <<
+                        " seconds"<<endl;
   	gettimeofday(&end, NULL); 
-	cout<<"*Elapsed time: "<<end.tv_sec  - start.tv_sec<<" seconds"<<endl;
+	printf("*Elapsed time: %ld seconds\n", end.tv_sec  - start.tv_sec);
         if (OUTSTREAM != NULL)
            {
 	         OUTSTREAM <<"*Elapsed time: "<<end.tv_sec  - start.tv_sec<<" seconds."<<endl;
@@ -439,4 +508,25 @@ int main(int argc, char* argv[]){
         lrs_clear_mp(Tnum); lrs_clear_mp(Tden);
 
 	return 0;
+}
+
+void post_output(const char *type, const char *data){
+	plrs_output *o = new plrs_output;
+	o->type = type;
+	o->data = data;
+        if (PLRS_DEBUG)
+                cout <<o->data<<endl;
+        //atomically post the output to the list.
+        plrs_output* stale_head = output_list.load(boost::memory_order_relaxed);
+        do {
+                o->next = stale_head;
+        }while( !output_list.compare_exchange_weak( stale_head, o, boost::memory_order_release ) );
+
+        // Because only one thread can post the 'first output', only that thread will attempt
+        // to aquire the lock and therefore there should be no contention on this lock except
+        // when *this thread is about to block on a wait condition.  
+        if( !stale_head ) {
+                boost::unique_lock<boost::mutex> lock(consume_mutex);
+                consume.notify_one();
+        }
 }

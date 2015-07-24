@@ -30,7 +30,16 @@
 #ifndef PLRS_HPP_INCLUDED
 #define PLRS_HPP_INCLUDED
 
-#define USAGE "Usage is plrs <infile> or plrs <infile> <outfile> or plrs -in <infile> -out <outfile> -mt <max threads> -id <initial depth> -set"
+#include <string>
+#include <sstream>
+
+#define USAGE "Usage is plrs <infile> <outfile> -mt <max threads> -id <initial depth>"
+
+struct plrs_output {
+        std::string type;
+        std::string data;
+        plrs_output* next;
+};
 
 plrs_output * reverseList(plrs_output* head);
 void processCobasis(string cobasis);

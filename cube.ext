@@ -1,5 +1,8 @@
+*plrs:lrslib v.6.0 2015.7.22(lrsgmp.h)12 processes
+*Copyright (C) 1995,2015, David Avis   avis@cs.mcgill.ca 
+*Input taken from cube.ine
+*Max depth of 4 to initialize starting cobasis list
 
-cube
 V-representation
 begin
 ***** 4 rational
@@ -12,8 +15,8 @@ begin
  1  1 -1 -1 
  1 -1 -1 -1 
 end
-*Totals: vertices=8 rays=0 bases=8 integer_vertices=8 
-*Dictionary Cache: max size= 4 misses= 0/7   Tree Depth= 3
-*lrs:lrslib v.5.1a 2015.1.21(32bit,lrsgmp.h)
-*0.000u 0.015s 3408Kb 872 flts 0 swaps 0 blks-in 0 blks-out 
-
+*Finished initializing cobasis list with 0 starting cobases
+*Starting 12 producer thread(s) and 1 consumer thread
+*Totals: vertices=8 rays=0 bases=8 integer-vertices=8
+*Phase 1 time: 0 seconds
+*Elapsed time: 0 seconds.

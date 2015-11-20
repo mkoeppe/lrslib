@@ -1,10 +1,9 @@
 /* lrslib.c     library code for lrs                     */
 
-/* last modified: 2012.10.23                               */
 /* modified by Gary Roumanis for multithread plrs compatability */
 /* truncate needs mod to supress last pivot */
 /* need to add a test for non-degenerate pivot step in reverse I guess */
-/* Copyright: David Avis 2003,2011 avis@cs.mcgill.ca         */
+/* Copyright: David Avis 2005,2011 avis@cs.mcgill.ca         */
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -217,7 +216,18 @@ Q = lrs_alloc_dat ("");	/* allocate and init structure for static problem data *
     lrs_printtotals (P, Q);	/* print final totals, including estimates       */
 
   lrs_clear_mp_vector(output, Q->n);
+
+/* 2015.9.16  fix memory leaks on Gcd Lcm Lin */
+  if(Q->nredundcol > 0)
+     lrs_clear_mp_matrix(Lin,Q->nredundcol,Q->n);
+  if(Q->runs > 0)
+    { 
+      free(Q->isave);
+      free(Q->jsave);
+    }
+  long savem=P->m;              /* need this to clear Q*/
   lrs_free_dic (P,Q);           /* deallocate lrs_dic */
+  Q->m=savem;
 
   lrs_free_dat (Q);             /* deallocate lrs_dat */
 
@@ -327,7 +337,7 @@ void plrs_read_dat (lrs_dat * Q, std::ifstream &input_file)
 void plrs_read_dic (lrs_dic * P, lrs_dat * Q, std::ifstream &input_file)
 {
 
-	lrs_mp Temp,Tempn,Tempd, mpone, mpten;
+	lrs_mp Temp, mpone;
 	lrs_mp_vector oD;		/* Denom for objective function */
 
 	long i, j;
@@ -342,7 +352,6 @@ void plrs_read_dic (lrs_dic * P, lrs_dat * Q, std::ifstream &input_file)
 	long m, d;
 
 	lrs_alloc_mp(Temp); lrs_alloc_mp(mpone);
-	lrs_alloc_mp(Tempn); lrs_alloc_mp(Tempd); lrs_alloc_mp(mpten);
 	A = P->A;
 	m = Q->m;
 	d = Q->inputd;
@@ -645,7 +654,6 @@ void plrs_read_dic (lrs_dic * P, lrs_dat * Q, std::ifstream &input_file)
 	}
 
 	lrs_clear_mp(Temp); lrs_clear_mp(mpone);
-	lrs_clear_mp(Tempn); lrs_clear_mp(Tempd); lrs_clear_mp(mpten);
 	lrs_clear_mp_vector (oD,d);
 
 	//post output in a nonblocking manner (a consumer thread will manage output)
@@ -886,8 +894,13 @@ redund_main (int argc, char *argv[])
   fprintf (lrs_ofp, "\n*Input had %ld rows and %ld columns", m, Q->n);
   fprintf (lrs_ofp, ": %ld row(s) redundant", m - nredund);
 
+/* 2015.9.9  fix memory leak on Gcd Lcm */
+  long savem=P->m;              /* need this to clear Q*/
   lrs_free_dic (P,Q);           /* deallocate lrs_dic */
+  Q->m=savem;
+
   lrs_free_dat (Q);             /* deallocate lrs_dat */
+
 
   lrs_close ("redund:");
 
@@ -3144,6 +3157,7 @@ lrs_estimate (lrs_dic * P, lrs_dat * Q)
 	    {
 	      cest[0] = cest[0] + rays;		/* may be some rays here */
               lrs_clear_mp(Nvol); lrs_clear_mp(Dvol);
+              lrs_clear_mp_vector(output, Q->n);
 	      return(0L);		/*subtree is a leaf */
 	    }
 
@@ -4436,6 +4450,7 @@ checkindex (lrs_dic * P, lrs_dat * Q, long index)
 
 }				/* end of checkindex */
 
+
 /***************************************************************/
 /*                                                             */
 /*            Package of I/O routines                          */
@@ -4892,7 +4907,6 @@ new_lrs_dic (long m, long d, long m_A)
 #endif
 
   p->d_orig=d;
-
   p->A=lrs_alloc_mp_matrix(m_A,d);
 
 
@@ -4937,6 +4951,39 @@ lrs_free_dic (lrs_dic * P, lrs_dat *Q)
 
   }  while (Q->Qhead != P );
 
+
+}
+
+void 
+lrs_free_dic2 (lrs_dic * P, lrs_dat *Q)
+{
+/* do the same steps as for allocation, but backwards */
+/* same as lrs_free_dic except no cache for P */
+    /* I moved these here because I'm not certain the cached dictionaries
+       need to be the same size. Well, it doesn't cost anything to be safe. db */
+
+  long d = P->d_orig;
+  long m_A = P->m_A;
+
+
+  lrs_clear_mp_matrix (P->A,m_A,d);
+
+/* "it is a ghastly error to free something not assigned my malloc" KR167 */
+/* so don't try: free (P->det);                                           */
+
+printf("\n hello 2"); fflush(stdout);
+  lrs_clear_mp (P->det);      
+  lrs_clear_mp (P->objnum);      
+  lrs_clear_mp (P->objden);      
+printf("\n hello 2"); fflush(stdout);
+
+  free (P->Row);
+  free (P->Col);
+  free (P->C);
+  free (P->B);
+
+printf("\n hello 2"); fflush(stdout);
+  free (P);
 
 }
 
@@ -5040,7 +5087,7 @@ lrs_alloc_dic (lrs_dat * Q)
 
 
   dict_count = 1;
-  dict_limit = 10;
+  dict_limit = 50; 
   cache_tries = 0;
   cache_misses = 0;
 

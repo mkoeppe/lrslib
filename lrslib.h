@@ -1,6 +1,6 @@
 /* lrslib.hpp (vertex enumeration using lexicographic reverse search) */
 #define TITLE "lrslib "
-#define VERSION "v.6.0 2015.7.22"   
+#define VERSION "v.6.1 2015.11.20"   
 #define AUTHOR "*Copyright (C) 1995,2015, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
@@ -17,6 +17,8 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
  */
+/*Ver 6.1   major change is new lrsnash driver and library coded by Terje Lensberg */
+/*Ver 6.0   major change is mplrs wrapper for multithreading coded by Skip Jordan  */
 /*Ver 5.0   major change is plrs wrapper for multithreading coded by Gary Roumanis */
 /*Ver 4.2*  library version                                      */
 /******************************************************************************/
@@ -206,7 +208,6 @@ typedef struct lrs_dat			/* global problem data   */
 }lrs_dat, lrs_dat_p;
 
 
-
 #ifdef PLRS
 /****************/
 /* 	PLRS 	*/
@@ -302,6 +303,7 @@ long checkindex (lrs_dic * P, lrs_dat * Q, long index); /* index=0 non-red.,1 re
 /* Routines for caching and restoring dictionaries */
 /***************************************************/
 void lrs_free_dic ( lrs_dic *P, lrs_dat *Q);
+void lrs_free_dic2 ( lrs_dic *P, lrs_dat *Q);  /* same as lrs_free_dic but no cache*/
 void lrs_free_dat ( lrs_dat *Q);
 void copy_dict (lrs_dat * global, lrs_dic * dest, lrs_dic * src);
 lrs_dic *alloc_memory (lrs_dat * Q);

@@ -135,6 +135,34 @@ void mplrs_init(int argc, char **argv)
 		}
 		
 	}
+
+	/* setup signals --
+         * TERM checkpoint to checkpoint file, or output file if none & exit
+	 * HUP ditto
+         */
+	signal(SIGTERM, mplrs_caughtsig);
+	signal(SIGHUP, mplrs_caughtsig);
+}
+
+/* if we catch a signal, set a flag to exit */
+void mplrs_caughtsig(int sig)
+{
+	if (mplrs.caughtsig<2)
+		mplrs.caughtsig = 1;
+	signal(sig, mplrs_caughtsig);
+	return;
+}
+
+/* if we've caught a signal, tell the master about it */
+void mplrs_handlesigs(void)
+{
+	float junk = 0;
+	if (mplrs.caughtsig != 1)
+		return;
+	/* we want to stop, so no need to hurry and queue the send */
+	MPI_Send(&junk, 1, MPI_FLOAT, MASTER, 9, MPI_COMM_WORLD);
+	mplrs.caughtsig = 2; /* handled */
+	return;
 }
 
 /* send the contents of the input file to all workers */
@@ -179,6 +207,7 @@ void mplrs_initstrucs(void)
 {
 	mplrs.cobasis_list = NULL;
 
+	mplrs.caughtsig = 0;
 	mplrs.rays = 0;
 	mplrs.vertices = 0;
 	mplrs.bases = 0;
@@ -282,7 +311,7 @@ void mplrs_commandline(int argc, char **argv)
 		{
 			arg = atoi(argv[i+1]);
 			i++;
-			if (arg<1)
+			if (arg<0)
 				bad_args();
 			master.initdepth = arg;
 			continue;
@@ -300,7 +329,7 @@ void mplrs_commandline(int argc, char **argv)
 		{
 			arg = atoi(argv[i+1]);
 			i++;
-			if (arg<1)
+			if (arg<0)
 				bad_args();
 			master.maxcobases = arg;
 			continue;
@@ -476,6 +505,7 @@ int mplrs_master(void)
 	int flag = 0;;
 	int phase = 1;     /* In phase1? */
 	int done = -1;     /* need a negative int to send to finished workers */
+	float junk=0; 	   /* need a buffer for incoming signal reports */
 	int ncob=0; /* for printing sizes of sub-problems */
 
 	gettimeofday(&last, NULL);
@@ -486,6 +516,7 @@ int mplrs_master(void)
 	master.workin = (int *)malloc(sizeof(int)*mplrs.size);
 	master.mworkers = (MPI_Request *)malloc(sizeof(MPI_Request)*mplrs.size);
 	master.incoming = NULL;
+	master.sigcheck = (MPI_Request *)malloc(sizeof(MPI_Request)*mplrs.size);
 
 	if (master.restart!=NULL)
 	{
@@ -497,7 +528,11 @@ int mplrs_master(void)
 	for (i=0; i<mplrs.size; i++)
 	{
 		master.act_producers[i] = 0;
-		if (i==MASTER || i==CONSUMER)
+		if (i==MASTER)
+			continue;
+		MPI_Irecv(&junk, 1, MPI_FLOAT, i, 9, MPI_COMM_WORLD,
+			  master.sigcheck+i);
+		if (i==CONSUMER)
 			continue;
 		MPI_Irecv(master.workin+i, 1, MPI_UNSIGNED, i, 6, MPI_COMM_WORLD,
 			  master.mworkers+i);
@@ -506,14 +541,17 @@ int mplrs_master(void)
 	while ((master.cobasis_list!=NULL && !master.checkpointing) || master.num_producers>0 || master.live_workers>0)
 	{
 		loopiter++;
-		/* sometimes check if we should update histogram */
+		/* sometimes check if we should update histogram or caught sig*/
 		if (master.doing_histogram && !(loopiter&0x1ff))
 			print_histogram(&cur, &last);
 
 		/* sometimes check if we should checkpoint */
-		if ((master.stop_filename!=NULL || master.time_limit!=0) && 
-		    !(loopiter&0x7ff) && !master.checkpointing)
-			check_stop();
+		if (!(loopiter&0x7ff) && !master.checkpointing)
+		{
+			if (master.stop_filename!=NULL || master.time_limit!=0)
+				check_stop();
+			master_checksigs();
+		}
 			
 		recv_producer_lists();
 
@@ -572,6 +610,7 @@ int mplrs_master(void)
 	free(master.workin);
 	free(master.mworkers);
 	free(master.act_producers);
+	free(master.sigcheck);
 	return 0;
 }
 
@@ -784,7 +823,7 @@ void setparams(int *header)
  */
 void check_stop(void)
 {
-	static int check[3] = {CHECKFLAG,0,0};
+	int check[3] = {CHECKFLAG,0,0};
 	MPI_Request ign;
 	struct timeval cur;
 	int flag = 0;
@@ -816,14 +855,91 @@ void check_stop(void)
 	}
 }
 
+/* check if we've caught a signal, or we've received a message from someone
+ * that has.  If so, we want to checkpoint like above
+ */
+void master_checksigs(void)
+{
+	int i, flag, size=mplrs.size;
+	int check[3] = {CHECKFLAG,0,0};
+	MPI_Request ign;
+	if (mplrs.caughtsig == 1)
+	{
+		mprintf(("M: I caught signal, checkpointing!\n"));
+		MPI_Isend(check, 3, MPI_INT, CONSUMER, 7, MPI_COMM_WORLD, &ign);
+		master.checkpointing = 1;
+		return;
+	}
+	for (i=1; i<size; i++)
+	{
+		MPI_Test(master.sigcheck+i, &flag, MPI_STATUS_IGNORE);
+		if (flag)
+		{
+			mprintf(("M: %d caught signal, checkpointing!\n",i));
+			MPI_Isend(check, 3, MPI_INT, CONSUMER, 7, MPI_COMM_WORLD, &ign);
+			master.checkpointing = 1;
+			return;
+		}
+	}
+}
+
 /* we're checkpointing, receive stats from consumer and output checkpoint file
+ */
+/* two cases: we have a file to checkpoint to (normal)
+ * or, we caught a signal and want to checkpoint but have no checkpoint file
+ * in this case we append to the output file via the consumer, with
+ * comments on where to cut
+ */
+/* mplrs1 format: counts are 'unsigned int' (%d unfortunately)
+ * mplrs2 format: counts are 'unsigned long' (%lu)
+ * so mplrs1 files can be read by mplrs2 readers not necc. reverse
  */
 void master_checkpoint(void)
 {
-	slist *list, *next;
+	int fin = -1;
 	mprintf(("M: making checkpoint file\n"));
 	recv_counting_stats(CONSUMER);
-	fprintf(master.checkp, "mplrs1\n%d %d %d %d %d\n", 
+	if (master.checkp_filename != NULL)
+	{
+		MPI_Send(&fin, 1, MPI_INT, CONSUMER, 1, MPI_COMM_WORLD);
+		master_checkpointfile();
+		return;
+	}
+	else
+	{
+		fin = 1;
+		MPI_Send(&fin, 1, MPI_INT, CONSUMER, 1, MPI_COMM_WORLD);
+		master_checkpointconsumer();
+		return;
+	}
+}
+
+/* note: master_checkpointconsumer and master_checkpointfile should
+ * produce the *same* format. First two lines of checkpointconsumer
+ * done by the consumer directly for now.
+ */
+void master_checkpointconsumer(void)
+{
+	int len;
+	char *str;
+	slist *list, *next;
+	for (list=master.cobasis_list; list; list=next)
+	{
+		next = list->next;
+		str = (char*)list->data;
+		len = strlen(str)+1; /* include \0 */
+		MPI_Send(&len, 1, MPI_INT, CONSUMER, 1, MPI_COMM_WORLD);
+		MPI_Send(str, len, MPI_CHAR, CONSUMER, 1, MPI_COMM_WORLD);
+		free(str);
+		free(list);
+	}
+	len = -1;
+	MPI_Send(&len, 1, MPI_INT, CONSUMER, 1, MPI_COMM_WORLD);
+}
+void master_checkpointfile(void)
+{
+	slist *list, *next;
+	fprintf(master.checkp, "mplrs2\n%lu %lu %lu %lu %lu\n", 
 		mplrs.rays, mplrs.vertices, mplrs.bases, mplrs.facets,
 		mplrs.intvertices);
 	for (list=master.cobasis_list; list; list=next)
@@ -850,7 +966,7 @@ void master_restart(void)
 
 	/* check 'mplrs1' header */
 	len = getline(&line, &size, master.restart);
-	if (len!=7 || strcmp("mplrs1\n",line))
+	if (len!=7 || (strcmp("mplrs1\n",line) && strcmp("mplrs2\n",line)))
 	{
 		printf("Unknown checkpoint format\n");
 		/* MPI_Finalize(); */
@@ -859,14 +975,21 @@ void master_restart(void)
 
 	mprintf2(("M: found checkpoint header\n"));
 	/* get counting stats */
-	fscanf(master.restart, "%d %d %d %d %d\n",
+	fscanf(master.restart, "%lu %lu %lu %lu %lu\n",
 	       &mplrs.rays, &mplrs.vertices, &mplrs.bases, &mplrs.facets,
 	       &mplrs.intvertices);
 
 	/* get L */
 	while((len = getline(&line, &size, master.restart))!= -1)
 	{
-		line[strlen(line)]='\0'; /* replace \n by \0 */
+		if (line[0]=='\n') /* ignore blank lines */
+		{
+			free(line);
+			line = NULL;
+			size=0;
+			continue;
+		}
+		line[strlen(line)-1]='\0'; /* replace \n by \0 */
 		master.cobasis_list = addlist(master.cobasis_list, line);
 		master.size_L++;
 		line = NULL;
@@ -934,6 +1057,8 @@ int mplrs_worker(void)
 	{
 		ncob = mplrs.bases - tot_ncob; /* #cobases in last job */
 		tot_ncob = mplrs.bases; /* #cobases done so far */
+		/* check signals */
+		mplrs_handlesigs();
 		/* ask for work */
 		mprintf2(("%d: Asking master for work\n",mplrs.rank));
 		MPI_Isend(&ncob, 1, MPI_UNSIGNED, MASTER, 6, MPI_COMM_WORLD, 
@@ -1412,6 +1537,9 @@ int mplrs_consumer(void)
 
 		/* check for completed message to process */
 		consumer_proc_messages();
+
+		/* check signals */
+		mplrs_handlesigs();
 	}
 
 	mprintf2(("C: getting stats and exiting\n"));
@@ -1463,7 +1591,10 @@ void consumer_start_incoming(void)
 			recv_counting_stats(MASTER);
 			consumer.waiting_initial = 0;
 			mprintf(("C: Restarted\n"));
-			/* no continue: master may restart and checkpoint */
+			/* master may restart and later checkpoint */
+			MPI_Irecv(consumer.prodibf+(i*3), 3, MPI_INT, i, 7,
+                          	  MPI_COMM_WORLD, consumer.prodreq+i);
+			continue;
 		}
 		
 		if (consumer.prodibf[3*i]<=0 && consumer.prodibf[3*i+1]<=0)
@@ -1571,7 +1702,33 @@ void consumer_proc_messages(void)
  */
 int consumer_checkpoint(void)
 {
+	int len;
+	char *str;
 	send_counting_stats(MASTER);
+	MPI_Recv(&len, 1, MPI_INT, MASTER, 1, MPI_COMM_WORLD,
+		 MPI_STATUS_IGNORE);
+	if (len == -1) /* master produces checkpoint file */
+	{
+		MPI_Finalize();
+		return 0;
+	}
+	fprintf(consumer.output, "*Checkpoint file follows this line\n");
+	fprintf(consumer.output, "mplrs2\n%lu %lu %lu %lu %lu\n", 
+		mplrs.rays, mplrs.vertices, mplrs.bases, mplrs.facets,
+		mplrs.intvertices);
+	while (1)
+	{
+		MPI_Recv(&len, 1, MPI_INT, MASTER, 1, MPI_COMM_WORLD,
+			 MPI_STATUS_IGNORE);
+		if (len<0)
+			break;
+		str = (char*)malloc(sizeof(char)*len);
+		MPI_Recv(str, len, MPI_CHAR, MASTER, 1, MPI_COMM_WORLD,
+			 MPI_STATUS_IGNORE);
+		fprintf(consumer.output,"%s\n",str);
+		free(str);
+	}
+	fprintf(consumer.output,"*Checkpoint finished above this line\n");
 	MPI_Finalize();
 	return 0;
 }
@@ -1655,17 +1812,18 @@ void recv_master_stats(void)
 /* send stats to target for final print */
 void send_counting_stats(int target)
 {
-	int stats[5] = {mplrs.rays, mplrs.vertices, mplrs.bases, mplrs.facets,
-			mplrs.intvertices};
-	MPI_Send(stats, 5, MPI_INT, target, 1, MPI_COMM_WORLD);
+	unsigned long stats[5] = {mplrs.rays, mplrs.vertices, mplrs.bases, 
+			          mplrs.facets, mplrs.intvertices};
+	MPI_Send(stats, 5, MPI_UNSIGNED_LONG, target, 1, MPI_COMM_WORLD);
 	return;
 }
 
 /* gets counting stats from target */
 void recv_counting_stats(int target)
 {
-	int stats[5];
-	MPI_Recv(stats, 5, MPI_INT, target, 1,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+	unsigned long stats[5];
+	MPI_Recv(stats, 5, MPI_UNSIGNED_LONG, target, 1, MPI_COMM_WORLD,
+		 MPI_STATUS_IGNORE);
 	mplrs.rays+=stats[0];
 	mplrs.vertices+=stats[1];
 	mplrs.bases+=stats[2];
@@ -1716,10 +1874,10 @@ void final_print(void)
 	fprintf(consumer.output, "end\n");
 	printf("*Total number of jobs: %d, L became empty %d times\n", master.tot_L, master.num_empty);
 	if (mplrs.facets>0)
-		fprintf(consumer.output,"*Totals: facets=%d bases=%d\n",
+		fprintf(consumer.output,"*Totals: facets=%lu bases=%lu\n",
 			mplrs.facets, mplrs.bases);
 	else
-		fprintf(consumer.output, "*Totals: vertices=%d rays=%d bases=%d integer-vertices=%d\n",
+		fprintf(consumer.output, "*Totals: vertices=%lu rays=%lu bases=%lu integer-vertices=%lu\n",
 			mplrs.vertices,mplrs.rays,mplrs.bases,mplrs.intvertices);
 	fprintf(consumer.output, "*Elapsed time: %ld seconds.\n",
 		end.tv_sec - mplrs.start.tv_sec);
@@ -1728,10 +1886,10 @@ void final_print(void)
 		return;
 
 	if (mplrs.facets>0)
-		printf("*Totals: facets=%d bases=%d\n", mplrs.facets,
+		printf("*Totals: facets=%lu bases=%lu\n", mplrs.facets,
 			mplrs.bases);
 	else
-		printf("*Totals: vertices=%d rays=%d bases=%d integer-vertices=%d\n",
+		printf("*Totals: vertices=%lu rays=%lu bases=%lu integer-vertices=%lu\n",
 		       mplrs.vertices,mplrs.rays,mplrs.bases,mplrs.intvertices);
 	printf("*Elapsed time: %ld seconds.\n", end.tv_sec - mplrs.start.tv_sec);
 }

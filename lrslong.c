@@ -415,6 +415,8 @@ lrs_clear_mp_matrix (lrs_mp_matrix p, long m, long n)
 
  for (i = 0; i < m + 1; i++)
       free (p[i]);
+/* 2015.9.9 memory leak fix */
+ free(p);
 }
 
 void 

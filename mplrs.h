@@ -26,6 +26,7 @@ Initial lrs Author: David Avis avis@cs.mcgill.ca
 #include <mpi.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #define USAGE "Usage is: \n mpirun -np <number of processes> mplrs <infile> <outfile> \n or \n mpirun -np <number of processes> mplrs <infile> <outfile> -id <initial depth> -maxc <maxcobases> -maxd <depth> -lmin <int> -lmax <int> -scale <int> -hist <file> -temp <prefix> -freq <file> -stop <stopfile> -checkp <checkpoint file> -restart <checkpoint file> -time <seconds>"
 
@@ -92,12 +93,13 @@ typedef struct mplrsv {
 	msgbuf *outgoing;
 	slist *cobasis_list;
 
+	int caughtsig; /* flag for catching a signal */
 	/* counts */
-	unsigned int rays;
-	unsigned int vertices;
-	unsigned int bases;
-	unsigned int facets;
-	unsigned int intvertices;
+	unsigned long rays;
+	unsigned long vertices;
+	unsigned long bases;
+	unsigned long facets;
+	unsigned long intvertices;
 	lrs_mp Tnum, Tden, tN, tD, Vnum, Vden;
 
 	struct timeval start, end;
@@ -140,6 +142,7 @@ typedef struct masterv {
 					   desiring work */
 	MPI_Request *mworkers;		/* MPI_Requests for these messages */
 	msgbuf *incoming;		/* incoming cobases from producers */
+	MPI_Request *sigcheck;		/* MPI_Requests for reporting signals*/
 
 	int checkpointing;		/* are we checkpointing now? */
 
@@ -221,6 +224,7 @@ typedef struct consumerv {
 
 /* function prototypes */
 void mplrs_init(int, char **);
+void mplrs_caughtsig(int);
 void master_sendfile(void);
 void mplrs_initstrucs();
 void mplrs_commandline(int, char **);
@@ -234,8 +238,11 @@ void recv_producer_lists(void);
 void process_returned_cobases(msgbuf *);
 void setparams(int *);
 void check_stop(void);
+void master_checksigs(void);
 void master_restart(void);
 void master_checkpoint(void);
+void master_checkpointfile(void);
+void master_checkpointconsumer(void);
 void print_histogram(timeval *, timeval *);
 
 int mplrs_worker(void);

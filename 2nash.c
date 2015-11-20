@@ -1,7 +1,7 @@
 // 2nash.c     v1.0  Jan 15, 2009
 
 // Hack of nlrs.c by Conor Meagher to run lrs simultaneously on n processors for n input files
-// runs nash on input files A B in both orders simultaneously, terminating when first proc finishes
+// runs lrsnash on input files A B in both orders simultaneously, terminating when first proc finishes
 // output goes in third argument if any, else in file: out
 
 #include <sys/wait.h>
@@ -28,10 +28,10 @@
 			 //forked threads
 			// n= sprintf(buffer, "lrs %s > out%i", argv[l], l);
                          if(l==1) {
-                              int n= sprintf(buffer, "nash %s %s > out%i", argv[1], argv[2], l);
+                              int n= sprintf(buffer, "lrsnash %s %s > out%i", argv[1], argv[2], l);
                          }
                          else     {
-                              int n= sprintf(buffer, "nash %s %s > out%i", argv[2], argv[1], l);
+                              int n= sprintf(buffer, "lrsnash %s %s > out%i", argv[2], argv[1], l);
                          }
 
 			 int i=system(buffer);
@@ -44,9 +44,9 @@
 		      if(w == cpid[j-1]) {
 			  // this child finished first
                           if(j==1)
-			      printf("nash %s %s   finished first\n", argv[1], argv[2]);
+			      printf("lrsnash %s %s   finished first\n", argv[1], argv[2]);
                           else {
-			      printf("nash %s %s   finished first\n", argv[2], argv[1]);
+			      printf("lrsnash %s %s   finished first\n", argv[2], argv[1]);
 			      printf("player numbers will be reversed in output\n");
                                }
                            if(argc == 4) {

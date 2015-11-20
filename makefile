@@ -41,7 +41,7 @@ LIBDIR     = /usr/lib
 #INCLUDEDIR = /usr/local/include
 #LIBDIR     = /usr/local/lib
 
-CFLAGS=-O3
+CFLAGS=-O3 
 
 # Add -DLRS_QUIET to CPPFLAGS to get no error  messages, warnings etc.
 # These flags should *not* include the arithmetic selecting define.
@@ -51,7 +51,7 @@ CPPFLAGS= -DTIMES -DSIGNALS
 RANLIB ?= /bin/true
 
 # default set of executables to build
-BINARIES=2nash lrs lrs1 nash redund redund1 setnash setnash2
+BINARIES=2nash lrs lrs1 lrsnash redund redund1 setnash setnash2
 # default set of libraries to build
 LIB=liblrsgmp.a
 LIBRARIES=$(LIB) $(SHLIB) $(SHLINK)
@@ -137,29 +137,34 @@ fourier:	fourier.c lrslib.h lrslib.c lrsgmp.h lrsgmp.c
 	gcc -O3 -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} fourier.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o fourier
 
 
-plrs:	  	plrs.cpp plrs.hpp lrslib.c lrslib.h lrsgmp.c lrsgmp.h
+plrs:	  	plrs.cpp plrs.hpp lrslib.c lrslib.h lrsgmp.c lrsgmp.h lrslong.c lrslong.h lrsmp.h lrsmp.c
 		g++ -DGMP  -Wall -Wno-write-strings -Wno-sign-compare -I${BOOSTINC}  -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -DGMP -o plrs plrs.cpp lrslib.c lrsgmp.c -L${BOOSTLIB} -lboost_thread -lboost_system -lgmp
-
-mplrs:		mplrs.c mplrs.h lrslib.c lrslib.h lrsgmp.c lrsgmp.h
-		 mpic++ -DGMP -Wall -Wno-write-strings -Wno-sign-compare -O3 -DPLRS -DGMP -o mplrs mplrs.c lrslib.c lrsgmp.c -lgmp
-
-mplrs1:		mplrs.c mplrs.h lrslib.c lrslib.h lrslong.h lrslong.c
-		 mpic++  -Wall -Wno-write-strings -Wno-sign-compare -O3 -DLRSLONG -DPLRS  -o mplrs1 mplrs.c lrslib.c lrslong.c
-
-plrsmp:	  	plrs.cpp plrs.hpp lrslib.c lrslib.h lrsmp.c lrsmp.h
 		g++ -Wall -Wno-write-strings -Wno-sign-compare -Wno-unused-variable -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -DLRSLONG -o plrs1 plrs.cpp lrslib.c lrslong.c -lboost_thread -lboost_system
 		g++ -Wall -Wno-write-strings -Wno-sign-compare -Wno-unused-variable -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -o plrsmp plrs.cpp lrslib.c lrsmp.c  -lboost_thread -lboost_system
+
+mplrs:		mplrs.c mplrs.h lrslib.c lrslib.h lrsgmp.c lrsgmp.h lrslong.h lrslong.c
+		 mpic++ -DGMP -Wall -Wno-write-strings -Wno-sign-compare -O3 -DPLRS -DGMP -o mplrs mplrs.c lrslib.c lrsgmp.c -lgmp
+		 mpic++  -Wall -Wno-write-strings -Wno-sign-compare -O3 -DLRSLONG -DPLRS  -o mplrs1 mplrs.c lrslib.c lrslong.c
+
 
 allmp:		lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h
 		gcc -Wall -O3 -DTIMES -DSIGNALS -o lrs lrs.c lrslib.c lrsmp.c
 		gcc -Wall -O3 -DTIMES -DSIGNALS -DLRSLONG -o lrs1 lrs.c lrslib.c lrslong.c
 		gcc -O3 -DTIMES -DSIGNALS -o redund  redund.c lrslib.c lrsmp.c
 		gcc -O3 -DTIMES -DSIGNALS -DLRSLONG -o redund1  redund.c lrslib.c lrslong.c
-		gcc -O3 -DLRS_QUIET  -DTIMES -DSIGNALS -o nash nash.c lrslib.c lrsmp.c
+		gcc -O3 -DLRS_QUIET  -DTIMES -DSIGNALS -o lrsnash lrsnash.c lrslib.c lrsmp.c
 		gcc -O3 -o setnash setupnash.c lrslib.c lrsmp.c
 		gcc -O3 -o setnash2 setupnash2.c lrslib.c lrsmp.c
 		gcc -O3 -o 2nash 2nash.c
 
+#In case you don't follow DBs handiwork above, try something like this
+simple:		lrs.c lrslib.c lrslib.h lrsgmp.c lrsgmp.h
+		 gcc -O3 -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrs.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o lrs
+		 gcc  -g -O3 -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrsnash.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o lrsnash
 
+lrsnash:	lrsnash.c nashdemo.c lrsnashlib.c lrslib.c lrsnashlib.h lrslib.h lrsgmp.c lrsgmp.h
+		gcc -O3  -o lrsnash lrsnash.c lrsnashlib.c lrslib.c lrsgmp.c -lgmp -DGMP
+		gcc -O3  -o nashdemo nashdemo.c lrsnashlib.c lrslib.c lrsgmp.c -lgmp -DGMP
+		gcc -O3 -o 2nash 2nash.c
 clean:		
-		rm -f $(BINARIES) $(LIBRARIES) plrs mplrs  *.o *.exe
+		rm -f $(BINARIES) $(LIBRARIES) lrsnash nashdemo plrs1 mplrs1 plrsmp plrs mplrs  *.o *.exe

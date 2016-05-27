@@ -92,7 +92,6 @@ lrs_main (int argc, char *argv[])
 	long col;			/* output column index for dictionary                   */
 	long startcol = 0;
 	long prune = FALSE;		/* if TRUE, getnextbasis will prune tree and backtrack  */
-        long leaf;
 
 /* global variables lrs_ifp and lrs_ofp are file pointers for input and output   */
 /* they default to stdin and stdout, but may be overidden by command line parms. */
@@ -188,7 +187,6 @@ Q = lrs_alloc_dat ("");	/* allocate and init structure for static problem data *
   /* vertex/ray/facet from the lrs_mp_vector output         */
   /* prune is TRUE if tree should be pruned at current node */
   prune=lrs_checkbound(P,Q);
-  leaf=0;
   do
     {
 
@@ -526,6 +524,9 @@ void plrs_read_dic (lrs_dic * P, lrs_dat * Q, std::ifstream &input_file)
 
 			}else if(line.find("allbases") != string::npos){
 				Q->allbases = TRUE;
+
+			}else if(line.find("countonly") != string::npos){
+				Q->countonly = TRUE;
 
 			}else if(line.find("incidence") != string::npos){
 				Q->incidence = TRUE;
@@ -916,6 +917,9 @@ void
 lrs_printoutput (lrs_dat * Q, lrs_mp_vector output)
 {
 
+if (Q->countonly)
+   return;
+
 #ifdef PLRS
 	//Make new output node
 	char *type=NULL;
@@ -1099,8 +1103,8 @@ lrs_init (char *name)       /* returns TRUE if successful, else FALSE */
   printf (TITLE);
   printf (VERSION);
   printf ("(");
-/*  printf (BIT); */
-/*  printf (","); */
+  printf (BIT); 
+  printf (","); 
   printf (ARITH);
   if (!lrs_mp_init (ZERO, stdin, stdout))  /* initialize arithmetic */
     return FALSE;
@@ -1189,10 +1193,11 @@ lrs_alloc_dat (const char *name)
 	Q->startcount[i] = 0L;
     }
   Q->count[2] = 1L;		/* basis counter */
-  Q->startcount[2] = 0L;		/* starting basis counter */
+  Q->startcount[2] = 0L;	/* starting basis counter */
 /* initialize flags */
   Q->allbases = FALSE;
   Q->bound = FALSE;            /* upper/lower bound on objective function given */
+  Q->countonly = FALSE;        /* produce the usual output */
   Q->debug = FALSE;
   Q->frequency = 0L;
   Q->dualdeg = FALSE;          /* TRUE if dual degenerate starting dictionary */
@@ -1623,6 +1628,12 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
 	{
 	  fprintf (lrs_ofp, "\n*%s", name);
 	  Q->allbases = TRUE;
+        }
+
+      if (strcmp (name, "countonly") == 0)
+	{
+	  fprintf (lrs_ofp, "\n*%s", name);
+	  Q->countonly = TRUE;
 	}
       if (strcmp (name, "dualperturb") == 0)
 	{

@@ -1,7 +1,7 @@
 /* lrslib.hpp (vertex enumeration using lexicographic reverse search) */
 #define TITLE "lrslib "
-#define VERSION "v.6.1 2015.11.20"   
-#define AUTHOR "*Copyright (C) 1995,2015, David Avis   avis@cs.mcgill.ca "
+#define VERSION "v.6.2 2016.3.28"   
+#define AUTHOR "*Copyright (C) 1995,2016, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -160,6 +160,7 @@ typedef struct lrs_dat			/* global problem data   */
 	/**** flags  **********                         */
 	long allbases;		/* TRUE if all bases should be printed          */
 	long bound;                 /* TRUE if upper/lower bound on objective given */
+	long countonly;             /* TRUE if only count totals should be output   */
 	long debug;
 	long dualdeg;		/* TRUE if start dictionary is dual degenerate  */
 	long etrace;		/* turn off debug at basis # strace             */

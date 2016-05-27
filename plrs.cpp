@@ -27,11 +27,11 @@ boost::mutex		cobasis_list_mutex;
 queue<string>		cobasis_list;
 
 //Total counts
-int RAYS = 0;
-int VERTICIES = 0;
-int BASIS = 0;
-int FACETS = 0;
-int INTVERTICIES = 0;
+long RAYS = 0;
+long VERTICES = 0;
+long BASIS = 0;
+long FACETS = 0;
+long INTVERTICES = 0;
 
 lrs_mp Tnum, Tden, tN, tD, Vnum, Vden;
 
@@ -226,10 +226,10 @@ void processOutput(){
 			BASIS += atoi(consume_list->data.c_str());
 
 		}else if(consume_list->type == "vertex count"){
-			VERTICIES += atoi(consume_list->data.c_str());
+			VERTICES += atoi(consume_list->data.c_str());
 
 		}else if(consume_list->type == "integer vertex count"){
-			INTVERTICIES += atoi(consume_list->data.c_str());
+			INTVERTICES += atoi(consume_list->data.c_str());
 			
 		}else if(consume_list->type == "volume"){
                         const char * c = consume_list->data.c_str();
@@ -483,15 +483,15 @@ int main(int argc, char* argv[]){
            }
 	if(FACETS > 0){
                 printf("%s\n", prat("*Volume=",Vnum,Vden).c_str());
-		printf("*Totals: facets=%d bases=%d\n",FACETS,BASIS);
+		printf("*Totals: facets=%ld bases=%ld\n",FACETS,BASIS);
                 if (OUTSTREAM != NULL) {
                     OUTSTREAM <<prat("*Volume=",Vnum,Vden) << endl ;
                     OUTSTREAM <<"*Totals: facets="<<FACETS<<" bases="<<BASIS<<endl;
                 }
 	}else{
-		printf("*Totals: vertices=%d rays=%d bases=%d integer-vertices=%d\n",VERTICIES,RAYS,BASIS,INTVERTICIES);
+		printf("*Totals: vertices=%ld rays=%ld bases=%ld integer-vertices=%ld\n",VERTICES,RAYS,BASIS,INTVERTICES);
                 if (OUTSTREAM != NULL)
-                    OUTSTREAM<<"*Totals: vertices="<<VERTICIES<<" rays="<<RAYS<<" bases="<<BASIS<< " integer-vertices="<<INTVERTICIES<<endl;
+                    OUTSTREAM<<"*Totals: vertices="<<VERTICES<<" rays="<<RAYS<<" bases="<<BASIS<< " integer-vertices="<<INTVERTICES<<endl;
 	}
 
        if(OUTSTREAM != NULL)

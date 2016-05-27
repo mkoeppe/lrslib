@@ -1,4 +1,4 @@
-// 2nash.c     v1.0  Jan 15, 2009
+// 2nash.c     v1.0a  Jan 15, 2009
 
 // Hack of nlrs.c by Conor Meagher to run lrs simultaneously on n processors for n input files
 // runs lrsnash on input files A B in both orders simultaneously, terminating when first proc finishes

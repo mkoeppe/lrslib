@@ -1,4 +1,4 @@
-#makefile for lrslib-060    2017.7.15
+#makefile for lrslib-062    2016.3.28
 
 #contains multithread version of lrs called plrs, wrapper written by Gary Roumanis
 #contains multicore version of lrs called mplrs, wrapper written by Skip Jordan  
@@ -143,8 +143,8 @@ plrs:	  	plrs.cpp plrs.hpp lrslib.c lrslib.h lrsgmp.c lrsgmp.h lrslong.c lrslong
 		g++ -Wall -Wno-write-strings -Wno-sign-compare -Wno-unused-variable -I${BOOSTINC}  -L${BOOSTLIB} -Wl,-rpath=${BOOSTLIB} -O3 -DPLRS -o plrsmp plrs.cpp lrslib.c lrsmp.c  -lboost_thread -lboost_system
 
 mplrs:		mplrs.c mplrs.h lrslib.c lrslib.h lrsgmp.c lrsgmp.h lrslong.h lrslong.c
-		 mpic++ -DGMP -Wall -Wno-write-strings -Wno-sign-compare -O3 -DPLRS -DGMP -o mplrs mplrs.c lrslib.c lrsgmp.c -lgmp
-		 mpic++  -Wall -Wno-write-strings -Wno-sign-compare -O3 -DLRSLONG -DPLRS  -o mplrs1 mplrs.c lrslib.c lrslong.c
+		 mpic++ -D_WITH_GETLINE -DGMP -Wall -Wno-write-strings -Wno-sign-compare -O3 -DPLRS -DGMP -o mplrs mplrs.c lrslib.c lrsgmp.c -lgmp
+		 mpic++ -D_WITH_GETLINE -Wall -Wno-write-strings -Wno-sign-compare -O3 -DLRSLONG -DPLRS  -o mplrs1 mplrs.c lrslib.c lrslong.c
 
 
 allmp:		lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h
@@ -152,7 +152,7 @@ allmp:		lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h
 		gcc -Wall -O3 -DTIMES -DSIGNALS -DLRSLONG -o lrs1 lrs.c lrslib.c lrslong.c
 		gcc -O3 -DTIMES -DSIGNALS -o redund  redund.c lrslib.c lrsmp.c
 		gcc -O3 -DTIMES -DSIGNALS -DLRSLONG -o redund1  redund.c lrslib.c lrslong.c
-		gcc -O3 -DLRS_QUIET  -DTIMES -DSIGNALS -o lrsnash lrsnash.c lrslib.c lrsmp.c
+		gcc -O3 -DLRS_QUIET  -DTIMES -DSIGNALS -o lrsnash lrsnash.c lrsnashlib.c lrslib.c lrsmp.c
 		gcc -O3 -o setnash setupnash.c lrslib.c lrsmp.c
 		gcc -O3 -o setnash2 setupnash2.c lrslib.c lrsmp.c
 		gcc -O3 -o 2nash 2nash.c
@@ -160,7 +160,7 @@ allmp:		lrs.c lrslib.c lrslib.h lrsmp.c lrsmp.h
 #In case you don't follow DBs handiwork above, try something like this
 simple:		lrs.c lrslib.c lrslib.h lrsgmp.c lrsgmp.h
 		 gcc -O3 -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrs.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o lrs
-		 gcc  -g -O3 -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrsnash.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o lrsnash
+		 gcc  -g -O3 -DTIMES -DSIGNALS  -DGMP -I${INCLUDEDIR} lrsnash.c lrsnashlib.c lrslib.c lrsgmp.c -L${LIBDIR}  -lgmp -o lrsnash
 
 lrsnash:	lrsnash.c nashdemo.c lrsnashlib.c lrslib.c lrsnashlib.h lrslib.h lrsgmp.c lrsgmp.h
 		gcc -O3  -o lrsnash lrsnash.c lrsnashlib.c lrslib.c lrsgmp.c -lgmp -DGMP

@@ -284,6 +284,32 @@ string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
 	return str;
 }
 
+char *cprat (char name[], lrs_mp Nin, lrs_mp Din) 
+{
+	char *ret;
+	unsigned long len;
+	int i, offset=0;
+	string s;
+	const char *cstr;
+
+	s  = prat(name,Nin,Din);
+	cstr = s.c_str();
+	len = strlen(cstr);
+	ret = (char *)malloc(sizeof(char)*(len+1));
+
+	for (i=0; i+offset<len+1;)
+	{
+		if (cstr[i+offset]!=' ')
+		{
+			ret[i] = cstr[i+offset];
+			i++;
+		}
+		else /* skip whitespace */
+			offset++;
+	}
+		
+	return ret;
+}
 
 string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
 {

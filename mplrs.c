@@ -221,6 +221,9 @@ void mplrs_initstrucs(void)
 	mplrs.input_filename = DEF_INPUT;
 	mplrs.input = NULL;
 	mplrs.output_list = NULL;
+	mplrs.outnum = 0;
+	mplrs.maxbuf = DEF_MAXBUF; /* maximum # lines to buffer */
+	mplrs.countonly = 0;
 
 	master.cobasis_list = NULL;
 	master.size_L = 0;
@@ -234,6 +237,7 @@ void mplrs_initstrucs(void)
 	master.initdepth = DEF_ID;
 	master.maxdepth = DEF_MAXD;
 	master.maxcobases = DEF_MAXC;
+	master.maxncob = DEF_MAXNCOB;
 	master.time_limit = 0;
 	master.hist_filename = DEF_HIST;
 	master.hist = NULL;
@@ -305,6 +309,29 @@ void mplrs_commandline(int argc, char **argv)
 		{
 			master.freq_filename = argv[i+1];
 			i++;
+			continue;
+		}
+		else if (!strcmp(argv[i], "-stopafter"))
+		{
+			arg = atoi(argv[i+1]);
+			i++;
+			if (arg<1)
+				bad_args();
+			master.maxncob = arg;
+			continue;
+		}
+		else if (!strcmp(argv[i], "-countonly"))
+		{
+			mplrs.countonly = 1;
+			continue;
+		}
+		else if (!strcmp(argv[i], "-maxbuf"))
+		{
+			arg = atoi(argv[i+1]);
+			i++;
+			if (arg<1)	
+				bad_args();
+			mplrs.maxbuf = arg;
 			continue;
 		}
 		else if (!strcmp(argv[i], "-id"))
@@ -506,7 +533,9 @@ int mplrs_master(void)
 	int phase = 1;     /* In phase1? */
 	int done = -1;     /* need a negative int to send to finished workers */
 	float junk=0; 	   /* need a buffer for incoming signal reports */
-	int ncob=0; /* for printing sizes of sub-problems */
+	int ncob=0; /* for printing sizes of sub-problems and for -stopafter*/
+	unsigned long tot_ncob = 0;
+	int want_stop = 0;
 
 	gettimeofday(&last, NULL);
 
@@ -538,13 +567,17 @@ int mplrs_master(void)
 			  master.mworkers+i);
 	}
 
-	while ((master.cobasis_list!=NULL && !master.checkpointing) || master.num_producers>0 || master.live_workers>0)
+	while ((master.cobasis_list!=NULL && !master.checkpointing && !want_stop) || master.num_producers>0 || master.live_workers>0)
 	{
 		loopiter++;
-		/* sometimes check if we should update histogram or caught sig*/
-		if (master.doing_histogram && !(loopiter&0x1ff))
-			print_histogram(&cur, &last);
-
+		/* sometimes check if we should update histogram etc */
+		if (!(loopiter&0x1ff))
+		{
+			if (master.maxncob>0 && master.maxncob<=tot_ncob)
+				want_stop = 1;
+			if (master.doing_histogram)
+				print_histogram(&cur, &last);
+		}
 		/* sometimes check if we should checkpoint */
 		if (!(loopiter&0x7ff) && !master.checkpointing)
 		{
@@ -577,9 +610,10 @@ int mplrs_master(void)
 				continue; /* i is not ready for more work */
 			
 			ncob = master.workin[i];
+			tot_ncob+=ncob;
 			mprintf2(("M: %d looking for work\n", i));
 			if ((master.cobasis_list!=NULL || phase==1) && 
-			    !master.checkpointing)
+			    !master.checkpointing && !want_stop)
 			{ /* and not checkpointing! */
 				send_work(i,phase);
 				MPI_Irecv(master.workin+i, 1, MPI_UNSIGNED,i, 6,
@@ -697,7 +731,7 @@ void recv_producer_lists(void)
 			  msg->target, header[0], header[1]));
 		process_returned_cobases(msg);
 
-		mprintf2(("M: Now have size_L=%d\n",master.size_L));
+		mprintf2(("M: Now have size_L=%lu\n",master.size_L));
 
 		if (prev)
 			prev->next = next;
@@ -939,9 +973,11 @@ void master_checkpointconsumer(void)
 void master_checkpointfile(void)
 {
 	slist *list, *next;
-	fprintf(master.checkp, "mplrs2\n%lu %lu %lu %lu %lu\n", 
+	char *vol = cprat("", mplrs.Vnum, mplrs.Vden);
+	fprintf(master.checkp, "mplrs3\n%lu %lu %lu %lu %lu\n%s\n", 
 		mplrs.rays, mplrs.vertices, mplrs.bases, mplrs.facets,
-		mplrs.intvertices);
+		mplrs.intvertices,vol);
+	free(vol);
 	for (list=master.cobasis_list; list; list=next)
 	{
 		next = list->next;
@@ -960,13 +996,16 @@ void master_checkpointfile(void)
 void master_restart(void)
 {
 	char *line=NULL;
-	size_t size=0;
+	char *vol=NULL;
+	size_t size=0, vsize=0;
 	ssize_t len=0;
 	int restart[3] = {RESTARTFLAG,0,0};
+	int ver;
 
 	/* check 'mplrs1' header */
 	len = getline(&line, &size, master.restart);
-	if (len!=7 || (strcmp("mplrs1\n",line) && strcmp("mplrs2\n",line)))
+	if (len!=7 || (strcmp("mplrs1\n",line) && strcmp("mplrs2\n",line) && 
+		       strcmp("mplrs3\n",line)))
 	{
 		printf("Unknown checkpoint format\n");
 		/* MPI_Finalize(); */
@@ -974,11 +1013,30 @@ void master_restart(void)
 	}
 
 	mprintf2(("M: found checkpoint header\n"));
+	sscanf(line,"mplrs%d\n",&ver);
+
 	/* get counting stats */
 	fscanf(master.restart, "%lu %lu %lu %lu %lu\n",
 	       &mplrs.rays, &mplrs.vertices, &mplrs.bases, &mplrs.facets,
 	       &mplrs.intvertices);
-
+	if (ver<3) /* volume added in mplrs3 */
+		printf("*Old checkpoint file, volume may be incorrect\n");
+	else /* get volume */
+	{
+		len = getline(&vol, &vsize, master.restart);
+		if (len<=1)
+		{
+			printf("Broken checkpoint file\n");
+			exit(0);
+		}
+		vol[len-1] = '\0'; /* remove '\n' */
+		plrs_readrat(mplrs.Tnum, mplrs.Tden, vol);
+		copy(mplrs.tN, mplrs.Vnum); copy(mplrs.tD, mplrs.Vden);
+		linrat(mplrs.tN, mplrs.tD, 1L, mplrs.Tnum, mplrs.Tden,
+		       1L, mplrs.Vnum, mplrs.Vden);
+		free(vol);
+	}
+		
 	/* get L */
 	while((len = getline(&line, &size, master.restart))!= -1)
 	{
@@ -996,7 +1054,7 @@ void master_restart(void)
 		size = 0;
 	}
 	master.tot_L = master.size_L; /* maybe should save and retrieve */
-	mprintf(("M: Restarted with |L|=%d\n",master.size_L)); 
+	mprintf(("M: Restarted with |L|=%lu\n",master.size_L)); 
 	fclose(master.restart);
 
 	MPI_Send(restart, 3, MPI_INT, CONSUMER, 7, MPI_COMM_WORLD);
@@ -1029,7 +1087,7 @@ void print_histogram(timeval *cur, timeval *last)
 		 * producers owing us a message about remaining cobases,
 		 * 0, 0 (existed in mplrs.cpp but no longer)
 		 */
-		fprintf(master.hist, "%f %d %d %d %d %d %d\n",
+		fprintf(master.hist, "%f %d %lu %d %d %d %lu\n",
 			sec, act, master.size_L, master.num_producers, 0, 0, master.tot_L);
 		fflush(master.hist);
 		last->tv_sec = cur->tv_sec;
@@ -1052,6 +1110,7 @@ int mplrs_worker(void)
 	unsigned int ncob=0; /* used for # cobases in prev. job */
 	unsigned int tot_ncob=0; 
 	int len;
+	int flag;
 
 	while (1)
 	{
@@ -1063,7 +1122,15 @@ int mplrs_worker(void)
 		mprintf2(("%d: Asking master for work\n",mplrs.rank));
 		MPI_Isend(&ncob, 1, MPI_UNSIGNED, MASTER, 6, MPI_COMM_WORLD, 
 			  &req);
-		MPI_Wait(&req, MPI_STATUS_IGNORE);
+		flag = 0;
+		while (1) /* was MPI_Wait(&req, MPI_STATUS_IGNORE); */
+		{
+			MPI_Test(&req, &flag, MPI_STATUS_IGNORE);
+			if (flag)
+				break;
+			clean_outgoing_buffers();
+		}
+
 		starting_cobasis = NULL;
 		/* get response */
 		MPI_Recv(header, 8, MPI_INT, MASTER, MPI_ANY_TAG,
@@ -1103,7 +1170,7 @@ int mplrs_worker(void)
  */
 int mplrs_worker_finished(void)
 {
-	int done[2] = {-1,-1};
+	int done[3] = {-1,-1,-1};
 
 	mprintf((" %d: All finished! Informing consumer.\n",mplrs.rank));
 
@@ -1111,7 +1178,7 @@ int mplrs_worker_finished(void)
 	{
 		clean_outgoing_buffers();
 	}
-	MPI_Send(&done, 2, MPI_INT, CONSUMER, 7, MPI_COMM_WORLD);
+	MPI_Send(&done, 3, MPI_INT, CONSUMER, 7, MPI_COMM_WORLD);
 	send_counting_stats(CONSUMER);
 	MPI_Finalize();
 	return 0;
@@ -1168,6 +1235,9 @@ void do_work(const int *header, const char *starting_cobasis)
 	if (header[2]>0)
 		fprintf(mplrs.tfile, "\nmaxcobases %d\n", header[2]);
 
+	if (mplrs.countonly == 1)
+		fprintf(mplrs.tfile, "countonly\n");
+
 	fclose(mplrs.tfile);
 
 	mprintf2(("%d: Calling lrs_main\n",mplrs.rank));
@@ -1189,6 +1259,7 @@ void process_output(void)
 	const char *data; /* because plrs_output is C++ at the moment */
 	int len = 1024;
 
+	mplrs.outnum = 0; /* clearing buffer */
 	mplrs.output_list = NULL;
 
 	out_string = (char *)malloc(sizeof(char)*len);
@@ -1269,6 +1340,7 @@ void send_output(int dest, char *str)
 {
 	msgbuf *msg = (msgbuf *)malloc(sizeof(msgbuf));
 	int *header = (int *)malloc(sizeof(int)*3);
+
 	header[0] = dest;
 	header[1] = strlen(str);
 	header[2] = mplrs.my_tag; /* to ensure the dest/str pair
@@ -1313,7 +1385,7 @@ void send_output(int dest, char *str)
  *                    by '0'
  *    if it's not a hull, replace everything between third and fourth
  *                    spaces by '0'
- * (this is resetting the depth to be 0 for a restart?)
+ * (this is resetting the depth to be 0 for a restart)
  */
 void process_cobasis(const char *newcob)
 {
@@ -1543,6 +1615,7 @@ int mplrs_consumer(void)
 	}
 
 	mprintf2(("C: getting stats and exiting\n"));
+
 	for (i=0; i<mplrs.size; i++)
 	{
 		if (i==CONSUMER || i==MASTER)
@@ -1635,14 +1708,14 @@ msgbuf *consumer_queue_incoming(int *header, int target)
 	newmsg->sizes = NULL;
 	newmsg->types = NULL;
 
-	newmsg->data = header[0]; /* whether bound for stdout or output file */
+	newmsg->data = header[0]; /* bound for stdout or output file */
 
 	/* get my_tag from producer via header[2] to uniquely identify msg */
 	MPI_Irecv(newmsg->buf[0], header[1]+1, MPI_CHAR, target, header[2],
 		  MPI_COMM_WORLD, newmsg->req);
 
 	mprintf3(("C: Receiving from %d (%d,%d,%d)",target,header[0],header[1],
-							header[2]));
+						    header[2]));
 	return newmsg;
 }
 
@@ -1704,6 +1777,7 @@ int consumer_checkpoint(void)
 {
 	int len;
 	char *str;
+	char *vol = cprat("", mplrs.Vnum, mplrs.Vden);
 	send_counting_stats(MASTER);
 	MPI_Recv(&len, 1, MPI_INT, MASTER, 1, MPI_COMM_WORLD,
 		 MPI_STATUS_IGNORE);
@@ -1713,9 +1787,10 @@ int consumer_checkpoint(void)
 		return 0;
 	}
 	fprintf(consumer.output, "*Checkpoint file follows this line\n");
-	fprintf(consumer.output, "mplrs2\n%lu %lu %lu %lu %lu\n", 
+	fprintf(consumer.output, "mplrs3\n%lu %lu %lu %lu %lu\n%s\n", 
 		mplrs.rays, mplrs.vertices, mplrs.bases, mplrs.facets,
-		mplrs.intvertices);
+		mplrs.intvertices,vol);
+	free(vol);
 	while (1)
 	{
 		MPI_Recv(&len, 1, MPI_INT, MASTER, 1, MPI_COMM_WORLD,
@@ -1795,15 +1870,16 @@ outlist *reverse_list(outlist* head)
 /* send stats on size of L, etc */
 void send_master_stats(void)
 {
-	int stats[4] = {master.tot_L, master.num_empty, 0, 0};
-	MPI_Send(stats, 4, MPI_INT, CONSUMER, 1, MPI_COMM_WORLD);
+	unsigned long stats[4] = {master.tot_L, master.num_empty, 0, 0};
+	MPI_Send(stats, 4, MPI_UNSIGNED_LONG, CONSUMER, 1, MPI_COMM_WORLD);
 	return;
 }
 /* get master stats on size of L, etc */
 void recv_master_stats(void)
 {
-	int stats[4] = {0,0,0,0};
-	MPI_Recv(stats, 4, MPI_INT, MASTER, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	unsigned long stats[4] = {0,0,0,0};
+	MPI_Recv(stats, 4, MPI_UNSIGNED_LONG, MASTER, 1, MPI_COMM_WORLD, 
+		 MPI_STATUS_IGNORE);
 	master.tot_L = stats[0];
 	master.num_empty = stats[1];
 	return;
@@ -1812,23 +1888,44 @@ void recv_master_stats(void)
 /* send stats to target for final print */
 void send_counting_stats(int target)
 {
-	unsigned long stats[5] = {mplrs.rays, mplrs.vertices, mplrs.bases, 
-			          mplrs.facets, mplrs.intvertices};
-	MPI_Send(stats, 5, MPI_UNSIGNED_LONG, target, 1, MPI_COMM_WORLD);
+	char *vol = NULL;
+	if (mplrs.facets>0)
+		vol = cprat("", mplrs.Vnum, mplrs.Vden);
+	else
+	{
+		vol = (char *)malloc(sizeof(char)*2);
+		vol[0] = '0'; vol[1] = '\0';
+	}
+	unsigned long stats[6] = {mplrs.rays, mplrs.vertices, mplrs.bases, 
+			          mplrs.facets, mplrs.intvertices,
+				  strlen(vol)+1};
+	MPI_Send(stats, 6, MPI_UNSIGNED_LONG, target, 1, MPI_COMM_WORLD);
+	MPI_Send(vol, stats[5], MPI_CHAR, target, 1, MPI_COMM_WORLD);
+	free(vol);
 	return;
 }
 
 /* gets counting stats from target */
 void recv_counting_stats(int target)
 {
-	unsigned long stats[5];
-	MPI_Recv(stats, 5, MPI_UNSIGNED_LONG, target, 1, MPI_COMM_WORLD,
+	char *vol;
+	unsigned long stats[6];
+	MPI_Recv(stats, 6, MPI_UNSIGNED_LONG, target, 1, MPI_COMM_WORLD,
 		 MPI_STATUS_IGNORE);
 	mplrs.rays+=stats[0];
 	mplrs.vertices+=stats[1];
 	mplrs.bases+=stats[2];
 	mplrs.facets+=stats[3];
 	mplrs.intvertices+=stats[4];
+
+	vol = (char*)malloc(sizeof(char)*stats[5]);
+	MPI_Recv(vol, stats[5], MPI_CHAR, target, 1, MPI_COMM_WORLD,
+		 MPI_STATUS_IGNORE);
+	plrs_readrat(mplrs.Tnum, mplrs.Tden, vol);
+	copy(mplrs.tN, mplrs.Vnum); copy(mplrs.tD, mplrs.Vden);
+	linrat(mplrs.tN, mplrs.tD, 1L, mplrs.Tnum, mplrs.Tden,
+	       1L, mplrs.Vnum, mplrs.Vden);
+	free(vol);
 	return;
 }
 
@@ -1844,6 +1941,8 @@ void initial_print(void)
 		fprintf(consumer.output, "maxdepth=%d lmin=%d lmax=%d scale=%d\n",
 			master.maxdepth, master.lmin,
 			master.lmax, master.scalec);
+		if (mplrs.countonly)
+			fprintf(consumer.output, "*countonly\n");
 		if (consumer.output==stdout)
 			return;
 		printf("*mplrs:%s%s(%s)%d processes\n%s\n",TITLE,VERSION,ARITH,
@@ -1854,6 +1953,8 @@ void initial_print(void)
 		       master.maxcobases);
 		printf("maxdepth=%d lmin=%d lmax=%d scale=%d\n", master.maxdepth,
 		       master.lmin, master.lmax, master.scalec);
+		if (mplrs.countonly)
+			printf("*countonly\n");
 }
 
 /* do the "*Phase 1 time: " print */
@@ -1869,13 +1970,18 @@ inline void phase1_print(void)
 void final_print(void)
 {
 	timeval end;
+	char *vol=NULL;
 	gettimeofday(&end, NULL);
 
 	fprintf(consumer.output, "end\n");
-	printf("*Total number of jobs: %d, L became empty %d times\n", master.tot_L, master.num_empty);
+	printf("*Total number of jobs: %lu, L became empty %lu times\n", master.tot_L, master.num_empty);
 	if (mplrs.facets>0)
+	{
+		vol = cprat("*Volume=",mplrs.Vnum,mplrs.Vden);
+		fprintf(consumer.output,"%s\n",vol);
 		fprintf(consumer.output,"*Totals: facets=%lu bases=%lu\n",
 			mplrs.facets, mplrs.bases);
+	}
 	else
 		fprintf(consumer.output, "*Totals: vertices=%lu rays=%lu bases=%lu integer-vertices=%lu\n",
 			mplrs.vertices,mplrs.rays,mplrs.bases,mplrs.intvertices);
@@ -1886,8 +1992,12 @@ void final_print(void)
 		return;
 
 	if (mplrs.facets>0)
+	{
+		printf("%s\n", vol);
 		printf("*Totals: facets=%lu bases=%lu\n", mplrs.facets,
 			mplrs.bases);
+		free(vol);
+	}
 	else
 		printf("*Totals: vertices=%lu rays=%lu bases=%lu integer-vertices=%lu\n",
 		       mplrs.vertices,mplrs.rays,mplrs.bases,mplrs.intvertices);
@@ -1901,6 +2011,11 @@ void post_output(const char *type, const char *data)
 	out->data = dupstr(data);
 	out->next = mplrs.output_list;
 	mplrs.output_list = out;
+	if (mplrs.outnum++ > mplrs.maxbuf) /* buffer <maxbuf output lines */
+	{
+		process_output();	   /* before starting a flush */
+		clean_outgoing_buffers();
+	}
 }
 
 /* strdup */

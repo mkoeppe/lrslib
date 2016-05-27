@@ -51,7 +51,7 @@ using namespace std;
  */
 #define DEFAULT_DIGITS 100L
 
-#ifndef B64
+#ifdef B32
 /*32 bit machines */
 #define FORMAT "%4.4u"
 #define MAXD 2147483647L
@@ -170,6 +170,7 @@ void linint (lrs_mp a, long ka, lrs_mp b, long kb);     /* compute a*ka+b*kb -->
 #ifdef PLRS
 string pmp (char name[], lrs_mp a);	/* print the long precision integer a             */
 string prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+char *cprat(char name[], lrs_mp Nt, lrs_mp Dt); /* C version of prat */
 long plrs_readrat (lrs_mp Na, lrs_mp Da, const char * rat);	/* take a rational number and convert to lrs_mp   */
 #else
 void pmp (char name[], lrs_mp a);	/* print the long precision integer a             */

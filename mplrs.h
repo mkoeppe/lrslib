@@ -27,8 +27,10 @@ Initial lrs Author: David Avis avis@cs.mcgill.ca
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/time.h>
 
-#define USAGE "Usage is: \n mpirun -np <number of processes> mplrs <infile> <outfile> \n or \n mpirun -np <number of processes> mplrs <infile> <outfile> -id <initial depth> -maxc <maxcobases> -maxd <depth> -lmin <int> -lmax <int> -scale <int> -hist <file> -temp <prefix> -freq <file> -stop <stopfile> -checkp <checkpoint file> -restart <checkpoint file> -time <seconds>"
+
+#define USAGE "Usage is: \n mpirun -np <number of processes> mplrs <infile> <outfile> \n or \n mpirun -np <number of processes> mplrs <infile> <outfile> -id <initial depth> -maxc <maxcobases> -maxd <depth> -lmin <int> -lmax <int> -scale <int> -maxbuf <int> -countonly -hist <file> -temp <prefix> -freq <file> -stop <stopfile> -checkp <checkpoint file> -restart <checkpoint file> -time <seconds> -stopafter <int>"
 
 /* Default values for options. */
 #define DEF_LMIN 3	/* default -lmin  */
@@ -36,6 +38,8 @@ Initial lrs Author: David Avis avis@cs.mcgill.ca
 #define DEF_ID   2	/* default -id    */
 #define DEF_MAXD 0	/* default -maxd  */
 #define DEF_MAXC 50	/* default -maxc  */
+#define DEF_MAXNCOB 0   /* default -stopafter (disabled) */
+#define DEF_MAXBUF  500 /* default -maxbuf */
 
 #define DEF_TEMP   "/tmp/" /* default prefix for temporary files
 			 * use /a/b to get files /a/bfilename,
@@ -75,7 +79,7 @@ typedef struct msgbuf {
 	void **buf;
 	int count;
 	int target;
-	int data;   /* optional, use yourself if needed for something */
+	int data;  /* optional, use yourself if needed for something */
 	int queue;  /* if 1, send items 1...count after 0 has completed */
 	/* queue pointers must be NULL or something free()able */
 	int *tags;  /* tags to use on items 1...count if queued */
@@ -118,6 +122,9 @@ typedef struct mplrsv {
 	char *tfn;
 	FILE *tfile;
 	int initializing;		/* in phase 1? */
+	int countonly; /* countonly */
+	int outnum; /* number of output lines buffered */
+	int maxbuf; /* maximum number of output lines to buffer before flush */
 
 	char *input_filename;		/* input filename */
 	char *input;			/* buffer for contents of input file */
@@ -126,11 +133,11 @@ typedef struct mplrsv {
 /* A structure for variables only the master needs */
 typedef struct masterv {
 	slist *cobasis_list;		/* list of work to do (L) */
-	unsigned int tot_L;		/* total size of L (total # jobs) */
-	unsigned int size_L;		/* current size of L (for histograms
+	unsigned long tot_L;		/* total size of L (total # jobs) */
+	unsigned long size_L;		/* current size of L (for histograms
 					 * and scaling)
 					 */
-	unsigned int num_empty;		/* number of times L became empty */
+	unsigned long num_empty;	/* number of times L became empty */
 	unsigned int num_producers; 	/* number of producers running */
 	unsigned int *act_producers;    /* whether each producer owes us
 					 * remaining bases message.
@@ -154,6 +161,7 @@ typedef struct masterv {
 	unsigned int maxdepth;		/* option -maxd */
 	unsigned int maxcobases;	/* option -maxc */
 	unsigned int time_limit;	/* option -time */
+	unsigned long maxncob;		/* option -stopafter */
 
 	/* files */
 	char *hist_filename;		/*histogram filename (or NULL)*/

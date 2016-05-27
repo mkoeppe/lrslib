@@ -4,6 +4,27 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/C/lrs.html
 -----------------------------------------------------------------------------
+2016.5.27
+
+Several changes to mplrs:
+ 1. New command-line options -countonly, -stopafter <n>, -maxbuf <n>.  
+ 2. Volume output.
+ 3. Counting statistics on number of jobs, size of L, number of times
+    empty changed to longs.
+ 4. Performance improvements for problems with large outputs.
+ 
+-----------------------------------------------------------------------------
+2016.3.28
+
+Changed default to 64-bit arithmetic when using lrslong and lrsmp arithmetic. 
+For 32bit machines a -DB32 compile flag is now required for make allmp and
+for compiles of lrs1/mplrs1/plrs1.
+
+-----------------------------------------------------------------------------
+2016.1.18
+
+countonly     option follows the end line and suppresses output of vertices/rays/facets
+
 2015.11.20    Current version is lrslib-061      Version 6.1
 
 1. Contains lrsnash.c and lrsnashlib.c replacing nash.c with a library version and simpler interface

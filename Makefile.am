@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 # Add -DLRS_QUIET to CPPFLAGS to get no error  messages, warnings etc.
 # These flags should *not* include the arithmetic selecting define.
 AM_CPPFLAGS = -DTIMES -DSIGNALS
@@ -49,8 +51,25 @@ lrs_LDADD = liblrsgmp.la -lgmp
 include_HEADERS = lrslib.h lrsgmp.h
 noinst_HEADERS = lrsmp.h lrslong.h lrsnashlib.h plrs.hpp mplrs.h
 
+# plrs -- requires C++ and Boost.
+if PLRS
+bin_PROGRAMS += plrs plrs1 plrsmp
+noinst_HEADERS += plrs.hpp
+plrs_SOURCES = plrs.cpp lrslib.cpp lrsgmp.cpp
+plrs1_SOURCES = plrs.cpp lrslib.cpp lrslong.cpp
+plrsmp_SOURCES = plrs.cpp lrslib.cpp lrsmp.cpp
+plrs_CPPFLAGS = -DPLRS -DGMP $(BOOST_CPPFLAGS) $(GMP_CFLAGS)
+plrs1_CPPFLAGS = -DPLRS -DLRSLONG $(BOOST_CPPFLAGS)
+plrsmp_CPPFLAGS = -DPLRS $(BOOST_CPPFLAGS)
+plrs_LDFLAGS = $(BOOST_LDFLAGS)
+plrs1_LDFLAGS = $(BOOST_LDFLAGS)
+plrsmp_LDFLAGS = $(BOOST_LDFLAGS)
+plrs_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) -lgmp
+plrs1_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
+plrsmp_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
+endif
+
 ### TBD:
-## bin_PROGRAMS += plrs
 ## bin_PROGRAMS += mplrs
 
 
@@ -168,8 +187,6 @@ EXTRA_DIST = 					\
 	mplrs.h					\
 	plotD.gp				\
 	plotL.gp				\
-	plrs.cpp				\
-	plrs.hpp				\
 	rat2float.c				\
 	readme					\
 	setupnash.c				\

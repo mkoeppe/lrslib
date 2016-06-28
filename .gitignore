@@ -33,3 +33,8 @@ autom4te.cache
 /plrs1
 /plrs
 /plrsmp
+/.dirstamp
+/mplrs/Makefile
+/mplrs/Makefile.in
+/mplrs/mplrs
+/mplrs/mplrs1

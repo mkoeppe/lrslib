@@ -1,4 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
+AUTOMAKE_OPTIONS = subdir-objects
+
+SUBDIRS = . mplrs
 
 # Add -DLRS_QUIET to CPPFLAGS to get no error  messages, warnings etc.
 # These flags should *not* include the arithmetic selecting define.
@@ -68,9 +71,6 @@ plrs_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) -lgmp
 plrs1_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
 plrsmp_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
 endif
-
-### TBD:
-## bin_PROGRAMS += mplrs
 
 
 examplesdir = $(pkgdatadir)/doc/examples
@@ -183,8 +183,6 @@ EXTRA_DIST = 					\
 	lpdemo.c				\
 	lpdemo2.c				\
 	lrs.cpp					\
-	mplrs.c					\
-	mplrs.h					\
 	plotD.gp				\
 	plotL.gp				\
 	rat2float.c				\

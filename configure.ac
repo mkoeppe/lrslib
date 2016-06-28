@@ -4,7 +4,7 @@
 AC_PREREQ(2.59)
 AC_INIT(lrslib, 062+autotools)
 AM_INIT_AUTOMAKE(foreign)
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile mplrs/Makefile])
 AC_CONFIG_MACRO_DIRS([m4])
 AC_PROG_CC
 AC_PROG_LIBTOOL
@@ -30,5 +30,22 @@ AS_IF([test "x$enable_plrs" != xno],
 	   enable_plrs=no])])
   ])
 AM_CONDITIONAL([PLRS], [test x$enable_plrs = xyes])
+
+# mplrs -- requires MPI.
+AC_ARG_ENABLE([mplrs],
+    [AS_HELP_STRING([--enable-mplrs@<:@=ARG@:>@],
+      [enable building mplrs @<:@default=check@:>@])],
+    [:],
+    [enable_mplrs=check])
+AS_IF([test "x$enable_mplrs" != xno],
+  [AC_LANG(C++)
+   AX_MPI(
+      [enable_mplrs=yes],
+      [AS_IF([test "x$enable_mplrs" == xyes],
+      	  [AC_MSG_ERROR([mplrs requires MPI C++ compiler])],
+	  [AC_MSG_NOTICE([Will not build mplrs because MPI C++ compiler was not found])
+	   enable_mplrs=no])])
+  ])
+AM_CONDITIONAL([MPLRS], [test x$enable_mplrs = xyes])
 
 AC_OUTPUT

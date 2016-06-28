@@ -3,6 +3,14 @@ README file for lrslib : reverse search vertex enumeration program/CH package
 Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/C/lrs.html
+
+
+*** This unofficial version of lrslib, available at
+    https://github.com/mkoeppe/lrslib/tree/autoconfiscation, has a new
+    build system using the GNU autotools.  It can build shared
+    libraries on Mac OS X.
+
+
 -----------------------------------------------------------------------------
 2016.5.27
 

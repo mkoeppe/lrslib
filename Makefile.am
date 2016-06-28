@@ -57,6 +57,12 @@ noinst_HEADERS = lrsmp.h lrslong.h lrsnashlib.h plrs.hpp mplrs.h
 examplesdir = $(pkgdatadir)/doc/examples
 nobase_dist_examples_DATA =			\
 	game game1 game2			\
+	cube.ext				\
+	cube.ine				\
+	mit.ine					\
+	mp5.ine					\
+	mp5.mplrs				\
+	mp5.plrs				\
 	ext/metric/cp4.ext			\
 	ext/metric/cp5.ext			\
 	ext/metric/cp6.ext			\
@@ -150,4 +156,23 @@ nobase_dist_examples_DATA =			\
 	ine/test-062/zfw91.ine			\
 	ine/test-062/zfw91nn.ine
 
-EXTRA_DIST = 
+EXTRA_DIST = 					\
+	chdemo.c				\
+	cleanthreads				\
+	float2rat.c				\
+	fourier.c				\
+	lpdemo.c				\
+	lpdemo2.c				\
+	lrs.cpp					\
+	mplrs.c					\
+	mplrs.h					\
+	plotD.gp				\
+	plotL.gp				\
+	plrs.cpp				\
+	plrs.hpp				\
+	rat2float.c				\
+	readme					\
+	setupnash.c				\
+	setupnash2.c				\
+	vedemo.c
+

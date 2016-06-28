@@ -191,3 +191,17 @@ EXTRA_DIST = 					\
 	setupnash2.c				\
 	vedemo.c
 
+# From Sage package:
+check-local:
+	${builddir}/lrs ${srcdir}/ext/test/cut16_11.ext > testout1
+	echo `grep -G Volume testout1` > testout1
+	echo "*Volume= 32768/14175" > testout2
+	diff testout1 testout2
+	${builddir}/lrs ${srcdir}/ine/test/cyclic17_8.ine > testout1
+	echo `grep -G Totals testout1` > testout1
+	echo "*Totals: vertices=935 rays=0 bases=935 integer_vertices=0" > testout2
+	diff testout1 testout2
+	rm testout1
+	rm testout2
+
+CLEANFILES = testout1 testout2

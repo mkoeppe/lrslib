@@ -52,7 +52,7 @@ int lrs_solve_nash(game * g)
 
   Q1 = lrs_alloc_dat("LRS globals");    /* allocate and init structure for static problem data */
   if (Q1 == NULL) {
-    return;
+    return 1;
   }
 
   Q1->nash = TRUE;
@@ -64,7 +64,7 @@ int lrs_solve_nash(game * g)
 
   P1 = lrs_alloc_dic(Q1);       /* allocate and initialize lrs_dic */
   if (P1 == NULL) {
-    return;
+    return 1;
   }
 
   BuildRep(P1, Q1, g, 1, 0);
@@ -74,7 +74,7 @@ int lrs_solve_nash(game * g)
   /* allocate and init structure for player 2's problem data */
   Q2 = lrs_alloc_dat("LRS globals");
   if (Q2 == NULL) {
-    return;
+    return 1;
   }
 
   Q2->debug = Debug_flag;
@@ -86,7 +86,7 @@ int lrs_solve_nash(game * g)
 
   P2orig = lrs_alloc_dic(Q2);   /* allocate and initialize lrs_dic */
   if (P2orig == NULL) {
-    return;
+    return 1;
   }
   BuildRep(P2orig, Q2, g, 0, 1);
   A2orig = P2orig->A;

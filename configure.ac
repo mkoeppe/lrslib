@@ -9,6 +9,18 @@ AC_CONFIG_MACRO_DIRS([m4])
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
+AC_CHECK_SIZEOF([long])
+case $ac_cv_sizeof_long in
+    8)
+        ;;
+    4)
+	AC_DEFINE(B32)
+	;;
+    *)
+	AC_MSG_ERROR([lrslib can only be built if sizeof(long) is 4 or 8; found $ac_cv_sizeof_long])
+	;;
+esac
+
 dnl plrs -- requires C++ and Boost.
 AC_PROG_CXX
 AC_ARG_ENABLE([plrs],

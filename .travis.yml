@@ -1,0 +1,20 @@
+language: cpp
+
+services:
+ - docker
+
+sudo: false
+
+env:
+ - DOCKER=toopher/centos-i386:centos6
+ - 
+
+addons:
+  apt_packages:
+      - libgmp-dev
+      - libboost-dev
+      - autoconf
+      - automake
+      - libtool
+
+script: ./.travis-build.sh

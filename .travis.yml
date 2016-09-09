@@ -13,6 +13,8 @@ addons:
   apt_packages:
       - libgmp-dev
       - libboost-dev
+      - libboost-system-dev
+      - libboost-thread-dev
       - autoconf
       - automake
       - libtool

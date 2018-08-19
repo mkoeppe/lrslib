@@ -6,7 +6,7 @@ services:
 sudo: false
 
 env:
- - DOCKER=toopher/centos-i386:centos6
+ - DOCKER=i386/ubuntu
  - 
 
 addons:

@@ -31,7 +31,7 @@ setnash2_SOURCES = setupnash2.c lrslib.c lrsmp.c
 
 # Installed library (shared and/or static) -- GMP arithmetic
 lib_LTLIBRARIES = liblrsgmp.la
-liblrsgmp_la_LDFLAGS = -version-info 0:0:0
+liblrsgmp_la_LDFLAGS = -version-info 0:0:0 -no-undefined
 liblrsgmp_la_SOURCES = lrslib.c lrsgmp.c
 liblrsgmp_la_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 liblrsgmp_la_LIBADD = $(GMP_LDFLAGS) -lgmp

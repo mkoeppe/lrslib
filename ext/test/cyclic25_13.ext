@@ -1,6 +1,6 @@
 cyclic25_13.ine
 H-representation
-digits 300
+*digits 300
 begin
 25 13 integer
 1   -156   1690   -22464   265018   -3234816   38683450   -465813504   

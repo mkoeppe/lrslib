@@ -4,6 +4,44 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/C/lrs.html
 -----------------------------------------------------------------------------
+2018.7.1  
+Version 7.0 (Beta release)  (lrslib-070)
+
+User's guide: http://cgm.cs.mcgill.ca/~avis/C/lrslib/USERGUIDE70.html
+
+Recommended makes:
+%make            # lrs,redund(hybrid arithmetic), lrsgmp, redundgmp
+%make mplrs      # mplrs(hybrid arithmetic), mplrsgmp
+
+1. hybrid (64bit/128bit/GMP) arithmetic implemented:
+   speedups of roughly 3-5 times (64bit) and 2 times(128bit) over GMP for problems using small integers. 
+2. overflow checking for 64/128 bit arithmetic
+3. __int128 (gcc v.4.6.0 or later) and FLINT arithmetic now supported
+4. lrsgmp, mplrsgmp uses only GMP arithmetic, same as lrslib-062
+5. lrs/redund/mplrs start in 64 bit moving to 128 bit and then to gmp arithmetic as necessary
+6. single arithmetic versions of lrs/mplrs available for comparison purposes
+7. single arithmetic versions of lrsnash are available with overflow checking
+8. plrs is no longer supported
+9. removing the -DSAFE option disables overflow checking in 64/128 bit mode and results are unpredicable if overflow occurs
+10. mplrs now prints maximum tree depth at end and supports printcobasis option in input files
+
+Shared library:
+
+To make just the shared library, and appropriate symlinks,
+
+% make liblrs.o
+
+This is a *multiarithmatic* library that contains the lrslib API
+suffixed with _1, _2, and _gmp. To use as a replacement for the old liblrsgmp.so, use
+
+CFLAGS+= "-DGMP -DMA"
+
+The -DMA is new, and enables rewriting of your existing function call
+lrs_foo(...) to lrs_foo_gmp(...). This is C preprocessor macros, and
+is optional, you can also call the _1, _2, and _gmp versions
+directly.
+
+-----------------------------------------------------------------------------
 2016.5.27
 
 Several changes to mplrs:

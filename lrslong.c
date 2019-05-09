@@ -27,10 +27,16 @@ gcd (lrs_mp u, lrs_mp v)
         v is destroyed.  Knuth, II, p.320 */
 
 {
+#ifndef B128
   unsigned long ul, vl, r;
 
   ul = labs (*u);
   vl = labs (*v);
+#else
+  __int128 ul, vl, r;
+  ul = abs128 (*u);
+  vl = abs128 (*v);
+#endif
   if (ul == 0)
     {
       *u = vl;
@@ -39,7 +45,7 @@ gcd (lrs_mp u, lrs_mp v)
 
   while (vl != 0)
     {
-      r = ul % vl;
+      r= ul % vl;
       ul = vl;
       vl = r;
     }
@@ -89,26 +95,29 @@ reduceint (lrs_mp Na, lrs_mp Da)	/* divide Na by Da and return */
 }
 
 
-long 
-comprod (lrs_mp Na, lrs_mp Nb, lrs_mp Nc, lrs_mp Nd)
-					    /* +1 if Na*Nb > Nc*Nd  */
-					    /* -1 if Na*Nb < Nc*Nd  */
-					    /*  0 if Na*Nb = Nc*Nd  */
+long
+comprod (lrs_mp Na, lrs_mp Nb, lrs_mp Nc, lrs_mp Nd)    /* +1 if Na*Nb > Nc*Nd  */
+                          /* -1 if Na*Nb < Nc*Nd  */
+                          /*  0 if Na*Nb = Nc*Nd  */
 {
-  long mc;
-  mc = *Na * *Nb - *Nc * *Nd;
-  if (mc > 0)
-    return 1;
-  if (mc < 0)
-    return -1;
-  return 0;
+  lrs_mp mc, md;
+  itomp(ZERO,mc); itomp(ZERO,md);   /*just to please some compilers */
+  mulint (Na, Nb, mc);
+  mulint (Nc, Nd, md);
+  if (mp_greater(mc,md))
+    return (1);
+  if (mp_greater(md,mc))
+    return (-1);
+  return (0);
 }
+
 
 void 
 linrat (lrs_mp Na, lrs_mp Da, long ka, lrs_mp Nb,  lrs_mp Db, long kb, lrs_mp Nc, lrs_mp Dc)		
 /* computes Nc/Dc = ka*Na/Da  +kb* Nb/Db and reduces answer by gcd(Nc,Dc) */
 {
   lrs_mp c;
+  itomp(ZERO,c);   /*just to please some compilers */
   mulint (Na, Db, Nc);
   mulint (Da, Nb, c);
   linint (Nc, ka, c, kb);	/* Nc = (ka*Na*Db)+(kb*Da*Nb)  */
@@ -272,7 +281,7 @@ readmp (lrs_mp a)		/* read an integer and convert to lrs_mp */
 
 #ifdef PLRS
 
-string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
+string sprat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
 {
 
 	//create stream to collect output
@@ -285,9 +294,39 @@ string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
 	reduce (Nt, Dt);
 	if (sign (Nt) != NEG)
 		ss<<" ";
+#ifndef B128
 	ss<<name<<*Nt;
 	if (*Dt != 1)
 		ss<<"/"<<*Dt;
+#else
+	__int128 a = *Nt;
+	char buf[64]; /* more than enough for 2^128 */
+	buf[63] = '\0';
+	int i;
+	if (a < 0)
+		ss << '-';
+	a = abs128(a);
+	for (i=62; a!=0 && i>=0; a=a/10, i--)
+		buf[i] = '0' + a%10;
+	if (i == 62) /* *Nt == 0 */
+		ss << '0';
+	else
+		ss << buf+i+1;
+	if (*Dt != 1)
+	{
+		ss << '/';
+		a = *Dt;
+		if (a < 0)
+			ss<< '-';
+		a = abs128(a);
+		for (i=62; a!=0 && i>=0; a=a/10, i--)
+			buf[i] = '0' + a%10;
+		if (i == 62) /* *Dt == 0, uh oh */
+			ss << '0';
+		else
+			ss << buf+i+1;
+	}
+#endif
 	ss<<" ";
 	//pipe stream to single string
 	str = ss.str();
@@ -302,7 +341,7 @@ char *cprat (char name[], lrs_mp Nin, lrs_mp Din)
 	string s;
         const char *cstr;
 
-	s = prat(name,Nin,Din);
+	s = sprat(name,Nin,Din);
 	cstr = s.c_str();
         len = strlen(cstr);
         ret = (char *)malloc(sizeof(char)*(len+1));
@@ -321,9 +360,8 @@ char *cprat (char name[], lrs_mp Nin, lrs_mp Din)
         return ret;
 }
 
-string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
+string spmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
 {
-	
 	//create stream to collect output
 	stringstream ss;
 	string str;
@@ -331,21 +369,51 @@ string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
 	ss<<name;
 	if(sign(Nt) != NEG)
 		ss<<" ";
+#ifndef B128
 	ss<<*Nt<<" ";
-
+#else
+      {
+	__int128 a = *Nt;
+        char buf[64]; /* more than enough for 2^128 */
+	buf[63] = '\0';
+	int i;
+	if (a < 0)
+		ss << '-';
+        a = abs128(a);
+	for (i=62; a!=0 && i>=0; a=a/10, i--)
+		buf[i] = '0' + a%10;
+	if (i == 62) /* *Nt == 0 */
+		ss << '0';
+	else
+		ss << buf+i+1;
+      }
+      ss << " ";
+#endif
 	//pipe stream to single string
 	str = ss.str();
 	return str;
 }
-#else
+#endif
 void 
 pmp (char name[], lrs_mp Nt)
 {
-  fprintf (lrs_ofp, "%s", name);
+  lrs_printf (lrs_ofp, "%s", name);
   if (sign (Nt) != NEG)
-    fprintf (lrs_ofp, " ");
-  fprintf (lrs_ofp, "%ld", *Nt);
-  fprintf (lrs_ofp, " ");
+    lrs_printf (lrs_ofp, " ");
+#ifndef B128
+  lrs_printf (lrs_ofp, "%lld", *Nt);
+#else
+  {
+    long long lower = *Nt % P10_INT64;
+    long long upper = *Nt / P10_INT64;
+    if (upper != 0)
+      lrs_printf(lrs_ofp, "%lld", upper);
+    else if (lower < 0)
+      lrs_printf(lrs_ofp, "-");
+    lrs_printf(lrs_ofp, "%lld", abs128(lower));
+  }
+#endif
+  lrs_printf (lrs_ofp, " ");
 }
 
 void 
@@ -357,13 +425,36 @@ prat (char name[], lrs_mp Nin, lrs_mp Din)
   copy (Dt, Din);
   reduce (Nt, Dt);
   if (sign (Nt) != NEG)
-    fprintf (lrs_ofp, " ");
-  fprintf (lrs_ofp, "%s%ld", name, *Nt);
+    lrs_printf (lrs_ofp, " ");
+#ifndef B128
+  lrs_printf (lrs_ofp, "%s%lld", name, *Nt);
   if (*Dt != 1)
-    fprintf (lrs_ofp, "/%ld", *Dt);
-  fprintf (lrs_ofp, " ");
-}				/* prat */
+    lrs_printf (lrs_ofp, "/%lld", *Dt);
+#else
+  {
+    long long lower = *Nt % P10_INT64;
+    long long upper = *Nt / P10_INT64;
+    lrs_printf(lrs_ofp, "%s", name);
+    if (upper != 0)
+      lrs_printf(lrs_ofp, "%lld", upper);
+    else if (lower < 0)
+      lrs_printf(lrs_ofp, "-");
+    lrs_printf(lrs_ofp, "%lld", abs128(lower));
+    if (*Dt != 1)
+    {
+      lower = *Dt % P10_INT64;
+      upper = *Dt / P10_INT64;
+      lrs_printf(lrs_ofp, "/");
+      if (upper != 0)
+        lrs_printf(lrs_ofp, "%lld", upper);
+      if (lower < 0)
+        lrs_printf(lrs_ofp, "-");
+      lrs_printf(lrs_ofp, "%lld", abs128(lower));
+    }
+  }
 #endif
+  lrs_printf (lrs_ofp, " ");
+}				/* prat */
 
 
 /***************************************************************/
@@ -376,7 +467,7 @@ lrs_alloc_mp_t ()
  /* dynamic allocation of lrs_mp number */
 {
   lrs_mp_t p;
-  p=(long *)calloc (1, sizeof (long));
+  p=(lrs_mp_t)calloc (1, sizeof (lrs_mp));
   return p;
 }
 
@@ -388,9 +479,9 @@ lrs_alloc_mp_vector (long n)
   lrs_mp_vector p;
   long i;
 
-  p = (long int **) CALLOC ((n + 1), sizeof (lrs_mp *));
+  p = (lrs_mp_t *) CALLOC ((n + 1), sizeof (lrs_mp_t));
   for (i = 0; i <= n; i++)
-    p[i] = (long int *) CALLOC (1, sizeof (lrs_mp));
+    p[i] = (lrs_mp_t) CALLOC (1, sizeof (lrs_mp));
 
   return p;
 }
@@ -410,19 +501,19 @@ lrs_alloc_mp_matrix (long m, long n)
 /* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp numbers */
 {
   lrs_mp_matrix a;
-  long *araw;
+  lrs_mp_t araw;
   int mp_width, row_width;
   int i, j;
 
   mp_width = lrs_digits + 1;
   row_width = (n + 1) * mp_width;
 
-  araw = (long int *) calloc ((m + 1) * row_width, sizeof (long));
-  a = (long int ***) calloc ((m + 1), sizeof (lrs_mp_vector));
+  araw = (lrs_mp_t) calloc ((m + 1) * row_width, sizeof (lrs_mp));
+  a = (lrs_mp_t **) calloc ((m + 1), sizeof (lrs_mp_vector));
 
   for (i = 0; i < m + 1; i++)
     {
-      a[i] = (long int**) calloc ((n + 1), sizeof (lrs_mp *));
+      a[i] = (lrs_mp_t *) calloc ((n + 1), sizeof (lrs_mp_t));
 
       for (j = 0; j < n + 1; j++)
 	a[i][j] = (araw + i * row_width + j * mp_width);
@@ -482,10 +573,7 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
   lrs_ofp = fpout;
 #endif
   lrs_record_digits = 0;
-
-
-  lrs_digits = 0;		/* max permitted no. of digits   */
-
+  lrs_digits =  0;		/* max permitted no. of digits   */
   return TRUE;
 }
 

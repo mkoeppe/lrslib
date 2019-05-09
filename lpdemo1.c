@@ -1,9 +1,12 @@
-/* lpdemo.c     lrslib lp demo code                  */
-/* last modified: June 20, 2001                          */
-/* Copyright: David Avis 2001, avis@cs.mcgill.ca         */
+/* lpdemo1.c     lrslib lp demo code                  */
+/* last modified: December 22, 2017                      */
+/* Copyright: David Avis 2017, avis@cs.mcgill.ca         */
 
-/* Demo driver for lp code using lrs                 */
-/* This program does lps on a set of generated cubes */
+/* Demo driver for lp solver using lrslib              */
+/* This program reads cdd/lrs file and solves LP     */
+
+/* Usage e.g.:   lpdemo1 mp5.ine                          */
+/* Input file should have maximize/minimize option with objective function */ 
 
 #include <stdio.h>
 #include <string.h>
@@ -30,36 +33,31 @@ main (int argc, char *argv[])
 
 /* Global initialization - done once */
 
-  if ( !lrs_init ("\n*lpdemo:"))
+  if ( !lrs_init ("\n*lpdemo1:"))
     return 1;
 
-/* generate cubes with dimension d */
-
-  for(i=1;i<=2;i++)
-  {
-    n=10;
-    m=18;               /* number of rows for cube dimension d */
-
-/* allocate and init structure for static problem data */
+/* allocate and init structure for static problem data and read input */
 
     Q = lrs_alloc_dat ("LRS globals");
     if (Q == NULL)
        return 1;
+    if (!lrs_read_dat (Q, argc, argv))    /* read first part of problem data to get dimensions   */
+       return 1;                           /* and problem type: H- or V- input representation     */
 
-    strcpy(Q->fname,"lpdemo");
-    Q->m=m;  Q->n=n;
+    strcpy(Q->fname,"lpdemo1");
+
+    P = lrs_alloc_dic (Q);        /* allocate and initialize lrs_dic                     */
+    if (P == NULL)
+       return 1;
+
+    if (!lrs_read_dic (P, Q))     /* read remainder of input to setup P and Q            */
+       return 1;
+
 
     Q->lponly=TRUE;      /* we do not want all vertices generated!   */
 
     output = lrs_alloc_mp_vector (Q->n);
 
-    P = lrs_alloc_dic (Q);   /* allocate and initialize lrs_dic      */
-    if (P == NULL)
-        return 1;
-
-/* Build polyhedron: constraints and objective */ 
-
-    makecube(P,Q);
 /* Solve the LP  */
 
    if (!lrs_solve_lp(P,Q))
@@ -78,9 +76,8 @@ main (int argc, char *argv[])
    lrs_free_dic (P,Q);         /* deallocate lrs_dic */
    lrs_free_dat (Q);           /* deallocate lrs_dat */
 
-  }    /* end of loop for i=1 ...  */
  
- lrs_close ("lpdemo:");
+ lrs_close ("lpdemo1:");
 
  printf("\n");
  return 0;

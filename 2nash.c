@@ -5,9 +5,10 @@
 // output goes in third argument if any, else in file: out
 
 #include <sys/wait.h>
-       #include <stdlib.h>
-       #include <unistd.h>
-       #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <signal.h>
 
        int main(int argc, char *argv[])
 	       {
@@ -54,7 +55,7 @@
 			       int n = sprintf(buffer, "/bin/mv -f out%i %s", j, argv[3]);
                            }
                            else  {
-			        printf("output file: out\n", argv[2], argv[1]);
+			        printf("output file: out\n");
 			        int n = sprintf(buffer, "/bin/mv -f out%i out", j);
                            }
 			  int i = system(buffer);

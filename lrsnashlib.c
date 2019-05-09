@@ -52,7 +52,7 @@ int lrs_solve_nash(game * g)
 
   Q1 = lrs_alloc_dat("LRS globals");    /* allocate and init structure for static problem data */
   if (Q1 == NULL) {
-    return;
+    return 0;
   }
 
   Q1->nash = TRUE;
@@ -64,7 +64,7 @@ int lrs_solve_nash(game * g)
 
   P1 = lrs_alloc_dic(Q1);       /* allocate and initialize lrs_dic */
   if (P1 == NULL) {
-    return;
+    return 0;
   }
 
   BuildRep(P1, Q1, g, 1, 0);
@@ -74,7 +74,7 @@ int lrs_solve_nash(game * g)
   /* allocate and init structure for player 2's problem data */
   Q2 = lrs_alloc_dat("LRS globals");
   if (Q2 == NULL) {
-    return;
+    return 0;
   }
 
   Q2->debug = Debug_flag;
@@ -86,7 +86,7 @@ int lrs_solve_nash(game * g)
 
   P2orig = lrs_alloc_dic(Q2);   /* allocate and initialize lrs_dic */
   if (P2orig == NULL) {
-    return;
+    return 0;
   }
   BuildRep(P2orig, Q2, g, 0, 1);
   A2orig = P2orig->A;
@@ -645,7 +645,7 @@ long getabasis2(lrs_dic * P, lrs_dat * Q, lrs_dic * P2orig, long order[], long l
         else if (j < nlinearity) {      /* cannot pivot linearity to cobasis */
           if (zero(A[Row[i]][0])) {
 #ifndef LRS_QUIET
-            fprintf(lrs_ofp, "\n*Input linearity in row %ld is redundant--skipped", order[j]);
+            fprintf(lrs_ofp, "*Input linearity in row %ld is redundant--skipped\n", order[j]);
 #endif
             linearity[j] = 0;
           }
@@ -803,8 +803,6 @@ int lrs_solve_nash_legacy (int argc, char *argv[])
 
   if ( !lrs_init ("\n*nash:"))
     return 1;
-  printf("\n");
-  printf(AUTHOR);
 
 /*********************************************************************************/
 /* Step 1: Allocate lrs_dat, lrs_dic and set up the problem                      */
@@ -819,7 +817,7 @@ int lrs_solve_nash_legacy (int argc, char *argv[])
 
   if (!lrs_read_dat (Q1, argc, argv))	/* read first part of problem data to get dimensions   */
     return 1;                   	/* and problem type: H- or V- input representation     */
-
+  strcpy(Q1->fname,"nash");     /* program name */
   P1 = lrs_alloc_dic (Q1);	/* allocate and initialize lrs_dic                     */
   if (P1 == NULL)
     return 1;
@@ -838,6 +836,7 @@ int lrs_solve_nash_legacy (int argc, char *argv[])
   if (Q2 == NULL)
           return 1;
 
+  strcpy(Q2->fname,"nash");     /* program name */
   Q2->nash=TRUE;
 
   if (!lrs_read_dat (Q2, 2, argv))	/* read first part of problem data to get dimensions   */

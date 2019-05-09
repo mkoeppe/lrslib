@@ -118,7 +118,7 @@ int lp_solve (lpp *lp)
   Q = lrs_alloc_dat ("LRS globals");
   if (Q == NULL)
      return 1;
-
+  strcpy(Q->fname,"lpdemo2");
   Q->m = lp->dim[ROW]-1;   // Rows, excluding the objective function  
 	Q->n = 1+lp->dim[COL];   // Columns, including RHS which goes in column 0
   Q->lponly = TRUE;        // we do not want all vertices generated!
@@ -159,7 +159,7 @@ int main(void)
 	lpp *lp = &LP;
 
 /* Global initialization - done once */
-  if ( !lrs_init ("\n*lp:"))
+  if ( !lrs_init ("\n*lpdemo2:"))
     return 1;
 
 	lp_solve(lp);

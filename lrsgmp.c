@@ -2,12 +2,20 @@
 /* Version 4.1, April 3, 2001                                        */
 /* Copyright: David Avis 2001, avis@cs.mcgill.ca                     */
 
+/* Version 4.2, January 20, 2018                                    */
+/* modified to use generic wrappers for everything in lrsgmp.c      */
+
+
 /* For gmp package                                                   */
 /* derived from lrslong.c and lrsmp.c                                */
 
 #ifdef PLRS
 #include <sstream>
 #include <iostream>
+#define lrs_printf stream_printf
+extern int stream_printf(FILE *, const char *, ...);
+#else
+#define lrs_printf fprintf
 #endif
 
 #include <stdlib.h>
@@ -87,7 +95,8 @@ comprod (lrs_mp Na, lrs_mp Nb, lrs_mp Nc, lrs_mp Nd)
 	lrs_alloc_mp(temp1); lrs_alloc_mp(temp2);
   mulint (Na, Nb, temp1);
   mulint (Nc, Nd, temp2);
-  i=mpz_cmp(temp1,temp2);
+//i=mpz_cmp(temp1,temp2);
+  i=mpcmp(temp1,temp2);
 	lrs_clear_mp(temp1);
 	lrs_clear_mp(temp2);
   if (i > 0)
@@ -196,8 +205,10 @@ rattodouble (lrs_mp a, lrs_mp b, double *x)	/* convert lrs_mp rati
 
 {
   double y;
-  y=mpz_get_d (a);
-  (*x)=mpz_get_d (b);
+//y=mpz_get_d (a);
+  y=mptodouble (a);
+//(*x)=mpz_get_d (b);
+  (*x)=mptodouble (b);
   (*x) = y / (*x);
 }
 #ifdef PLRS
@@ -250,7 +261,7 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
 }
 
 #ifdef PLRS
-string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
+string sprat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
 {
 
 	//create stream to collect output
@@ -268,11 +279,12 @@ string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
   	ss<<name;
 	if (sign (temp1) != NEG)
 		ss<<" ";
-	buff = mpz_get_str(NULL, 10, temp1);
+//	buff = mpz_get_str(NULL, 10, temp1);
+  	buff = mpgetstr(NULL, 10, temp1);
   	ss<<buff;
 	free(buff);
   	if (!one(temp2)){
-		buff = mpz_get_str(NULL, 10, temp2);
+		buff = mpgetstr(NULL, 10, temp2);
 		ss<<"/"<<buff;
 		free(buff);
 	}
@@ -292,7 +304,7 @@ char *cprat (char name[], lrs_mp Nin, lrs_mp Din)
 	string s;
 	const char *cstr;
 
-	s  = prat(name,Nin,Din);
+	s  = sprat(name,Nin,Din);
 	cstr = s.c_str();
 	len = strlen(cstr);
 	ret = (char *)malloc(sizeof(char)*(len+1));
@@ -311,7 +323,7 @@ char *cprat (char name[], lrs_mp Nin, lrs_mp Din)
 	return ret;
 }
 
-string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
+string spmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
 {
 	
 	//create stream to collect output
@@ -322,7 +334,7 @@ string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
 
   	if (sign (Nt) != NEG)
 		ss<<" ";
-	buff = mpz_get_str(NULL,10,Nt);
+	buff = mpgetstr(NULL,10,Nt);
   	ss<<buff<<" ";
 	free(buff);
 	
@@ -330,16 +342,17 @@ string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
 	str = ss.str();
 	return str;
 }
-#else
+#endif
 
 void
 pmp (char name[], lrs_mp Nt)
 {
-  fprintf (lrs_ofp, "%s", name);
+  lrs_printf (lrs_ofp, "%s", name);
   if (sign (Nt) != NEG)
-    fprintf (lrs_ofp, " ");
-  mpz_out_str (lrs_ofp,10,Nt);
-  fprintf (lrs_ofp, " ");
+    lrs_printf (lrs_ofp, " ");
+//mpz_out_str (lrs_ofp,10,Nt);
+  mpoutstr (lrs_ofp,10,Nt);
+  lrs_printf (lrs_ofp, " ");
 }
 
 void 
@@ -352,20 +365,19 @@ prat (char name[], lrs_mp Nin, lrs_mp Din)
   copy (temp1, Nin);
   copy (temp2, Din);
   reduce (temp1, temp2);
-  fprintf (lrs_ofp, "%s", name);
+  lrs_printf (lrs_ofp, "%s", name);
   if (sign (temp1) != NEG)
-    fprintf (lrs_ofp, " ");
-  mpz_out_str (lrs_ofp,10,temp1);
+    lrs_printf (lrs_ofp, " ");
+  mpoutstr (lrs_ofp,10,temp1);
   if ( !one(temp2))
     {
-    fprintf (lrs_ofp, "/");
-    mpz_out_str (lrs_ofp,10,temp2);
+    lrs_printf (lrs_ofp, "/");
+    mpoutstr (lrs_ofp,10,temp2);
     }
-  fprintf (lrs_ofp, " ");
+  lrs_printf (lrs_ofp, " ");
 	lrs_clear_mp(temp1);
 	lrs_clear_mp(temp2);
 }				/* prat */
-#endif
 
 
 void
@@ -484,11 +496,6 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
   lrs_record_digits = 0;        /* not used for gmp arithmetic  */
   lrs_digits = 0;		/* not used for gmp arithmetic  */
 
-#ifndef PLRS
-	#ifndef LRS_QUIET
-  		printf(" gmp v.%d.%d",__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR);
-	#endif
-#endif
   return TRUE;
 }
 
@@ -568,13 +575,17 @@ linint(lrs_mp a, long ka, lrs_mp b, long kb)
 {
   lrs_mp temp1;
   lrs_alloc_mp (temp1);
-mpz_mul_ui (a,a,labs(ka));
-if (ka < 0)
-   mpz_neg(a,a);
-mpz_mul_ui (temp1,b,labs(kb));
-if (kb < 0)
-   mpz_neg(temp1,temp1);
-mpz_add(a,a,temp1);
+//mpz_mul_ui (a,a,labs(ka));
+  mului (a,a,labs(ka));
+  if (ka < 0)
+//   mpz_neg(a,a);
+  changesign(a);
+  mului (temp1,b,labs(kb));
+  if (kb < 0)
+//   mpz_neg(temp1,temp1);
+ changesign(temp1);
+//mpz_add(a,a,temp1);
+ addint(a,temp1,a);
  lrs_clear_mp (temp1);
 
 }
@@ -584,6 +595,7 @@ void
 storesign(lrs_mp a, long sa)
 {
   if ( (sa)*sign(a) < 0 )
-      mpz_neg(a,a);
+//    mpz_neg(a,a);
+    changesign(a);
 }
 

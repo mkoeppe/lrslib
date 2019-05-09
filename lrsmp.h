@@ -35,6 +35,7 @@ using namespace std;
 /***********/
 /* defines */
 /***********/
+#define suf(func) func
 /*
    this is number of longwords. Increasing this won't cost you that much
    since only variables other than the A matrix are allocated this size.
@@ -49,34 +50,23 @@ using namespace std;
    digits n
    before the begin line of your file.
  */
-#define DEFAULT_DIGITS 100L
+#define DEFAULT_DIGITS 1000L
 
 
 
 /**********MACHINE DEPENDENT CONSTANTS***********/
-/* MAXD is 2^(k-1)-1 where k=16,32,64 word size */
+/* MAXD is 2^(k-1)-1 where k is word size       */
 /* MAXD must be at least 2*BASE^2               */
 /* If BASE is 10^k, use "%k.ku" for FORMAT      */
 /* INTSIZE is number of bytes for integer       */
-/* 32/64 bit machines                           */
 /***********************************************/
-#ifdef B32
-/*32 bit machines */
-#define FORMAT "%4.4lu"
-#define MAXD 2147483647L
-#define BASE 10000L
-#define BASE_DIG 4
-#define INTSIZE 8L
-#define BIT "32bit"
-#else
 /* 64 bit machines */
-#define MAXD 9223372036854775807L
-#define BASE 1000000000L
-#define FORMAT "%9.9lu"
+#define MAXD 9223372036854775807LL
+#define BASE 1000000000LL
+#define FORMAT "%9.9llu"
 #define BASE_DIG 9
 #define INTSIZE 16L
 #define BIT "64bit"
-#endif
 
 #define MAXINPUT 1000		/*max length of any input rational */
 
@@ -139,10 +129,10 @@ extern FILE* lrs_ofp;			/* output file pointer      */
 /* typedefs  */
 /*************/
 
-typedef long lrs_mp[MAX_DIGITS + 1];	/* type lrs_mp holds one multi-precision integer */
-typedef long *lrs_mp_t;
-typedef long **lrs_mp_vector;
-typedef long ***lrs_mp_matrix;
+typedef long long lrs_mp[MAX_DIGITS + 1];	/* type lrs_mp holds one multi-precision integer */
+typedef long long *lrs_mp_t;
+typedef long long **lrs_mp_vector;
+typedef long long ***lrs_mp_matrix;
 
 /*********************************************************/
 /* Initialization and allocation procedures - must use!  */
@@ -228,5 +218,6 @@ void *xcalloc (long n, long s, long l, char *f);
 
 void lrs_default_digits_overflow ();
 void digits_overflow ();
+void lrs_exit(int i); 
 
 /* end of  lrsmp.h (vertex enumeration using lexicographic reverse search) */

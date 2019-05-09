@@ -53,7 +53,6 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
 
   lrs_ifp = fpin;
   lrs_ofp = fpout;
-
   lrs_record_digits = 0;
   if (dec_digits <= 0)
     dec_digits = DEFAULT_DIGITS;
@@ -82,7 +81,7 @@ lrs_alloc_mp_t ()
  /* dynamic allocation of lrs_mp number */
 {
   lrs_mp_t p;
-  p=(long *)calloc (lrs_digits+1, sizeof (long));
+  p=(long long *)calloc (lrs_digits+1, sizeof (long long));
   return p;
 }
 
@@ -95,7 +94,7 @@ lrs_alloc_mp_vector (long n)
 
   p = (lrs_mp_vector) CALLOC ((n + 1), sizeof (lrs_mp *));
   for (i = 0; i <= n; i++)
-    p[i] = (long int *)CALLOC (1, sizeof (lrs_mp));
+    p[i] = (long long int *)CALLOC (1, sizeof (lrs_mp));
 
   return p;
 }
@@ -115,19 +114,19 @@ lrs_alloc_mp_matrix (long m, long n)
 /* allocate lrs_mp_matrix for m+1 x n+1 lrs_mp numbers */
 {
   lrs_mp_matrix a;
-  long *araw;
+  long long *araw;
   int mp_width, row_width;
   int i, j;
 
   mp_width = lrs_digits + 1;
   row_width = (n + 1) * mp_width;
 
-  araw = (long int*)calloc ((m + 1) * row_width, sizeof (long));
+  araw = (long long int*)calloc ((m + 1) * row_width, sizeof (long long));
   a = (lrs_mp_matrix) calloc ((m + 1), sizeof (lrs_mp_vector));
 
   for (i = 0; i < m + 1; i++)
     {
-      a[i] = (long int **)calloc ((n + 1), sizeof (lrs_mp *));
+      a[i] = (long long int **)calloc ((n + 1), sizeof (lrs_mp *));
 
       for (j = 0; j < n + 1; j++)
 	a[i][j] = (araw + i * row_width + j * mp_width);
@@ -170,8 +169,8 @@ void copy (lrs_mp a, lrs_mp b)	/* assigns a=b  */
 void 
 divint (lrs_mp a, lrs_mp b, lrs_mp c)	/* c=a/b, a contains remainder on return */
 {
-  long cy, la, lb, lc, d1, s, t, sig;
-  long i, j, qh;
+  long long cy, la, lb, lc, d1, s, t, sig;
+  long long i, j, qh;
 
 /*  figure out and save sign, do everything with positive numbers */
   sig = sign (a) * sign (b);
@@ -330,9 +329,9 @@ gcd (lrs_mp u, lrs_mp v)	/*returns u=gcd(u,v) destroying v */
 	        Switches to single precision when possible for greater speed */
 {
   lrs_mp r;
-  unsigned long ul, vl;
+  unsigned long long ul, vl;
   long i;
-  static unsigned long maxspval = MAXD;		/* Max value for the last digit to guarantee */
+  static unsigned long long maxspval = MAXD;	/* Max value for the last digit to guarantee */
   /* fitting into a single long integer. */
 
   static long maxsplen;		/* Maximum digits for a number that will fit */
@@ -564,7 +563,7 @@ mulint (lrs_mp a, lrs_mp b, lrs_mp c)	/* multiply two integers a*b --> c */
 void 
 normalize (lrs_mp a)
 {
-  long cy, i, la;
+  long long cy, i, la;
   la = length (a);
 start:
   cy = 0;
@@ -729,13 +728,13 @@ void prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
 	fprintf (lrs_ofp, "-");
 	else
 	fprintf (lrs_ofp, " ");
-	fprintf (lrs_ofp, "%lu", Nt[length (Nt) - 1]);
+	fprintf (lrs_ofp, "%llu", Nt[length (Nt) - 1]);
 	for (i = length (Nt) - 2; i >= 1; i--)
 	fprintf (lrs_ofp, FORMAT, Nt[i]);
 	if (!(Dt[0] == 2 && Dt[1] == 1))	/* rational */
 	{
 	fprintf (lrs_ofp, "/");
-	fprintf (lrs_ofp, "%lu", Dt[length (Dt) - 1]);
+	fprintf (lrs_ofp, "%llu", Dt[length (Dt) - 1]);
 	for (i = length (Dt) - 2; i >= 1; i--)
 	fprintf (lrs_ofp, FORMAT, Dt[i]);
 	}
@@ -752,7 +751,7 @@ void pmp (char name[], lrs_mp a)	/*print the long precision integer a */
 	fprintf (lrs_ofp, "-");
 	else
 	fprintf (lrs_ofp, " ");
-	fprintf (lrs_ofp, "%lu", a[length (a) - 1]);
+	fprintf (lrs_ofp, "%llu", a[length (a) - 1]);
 	for (i = length (a) - 2; i >= 1; i--)
 	fprintf (lrs_ofp, FORMAT, a[i]);
 	fprintf (lrs_ofp, " ");	
@@ -1091,10 +1090,10 @@ lrs_getdigits (long *a, long *b)
 void 
 lrs_default_digits_overflow ()
 {
-  fprintf (stdout, "\nOverflow at digits=%ld", DIG2DEC (lrs_digits));
+  fprintf (stdout, "\nlrsmp: overflow at digits=%ld", DIG2DEC (lrs_digits));
   fprintf (stdout, "\nInitialize lrs_mp_init with  n > %ldL\n", DIG2DEC (lrs_digits));
 
-  exit (1);
+  lrs_exit (1);
 }
 
 #ifdef PLRS

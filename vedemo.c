@@ -26,6 +26,7 @@ main (int argc, char *argv[])
   long i;
   long col;    	/* output column index for dictionary            */
 
+
 /* Global initialization - done once */
 
   if ( !lrs_init ("\n*vedemo:"))

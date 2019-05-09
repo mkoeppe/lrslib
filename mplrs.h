@@ -21,14 +21,19 @@ Initial lrs Author: David Avis avis@cs.mcgill.ca
 #ifndef MPLRSH
 #define MPLRSH 1
 
+#ifdef MA
+#define GMP
+#endif
+
 #include "lrslib.h"
+#include "lrsdriver.h"
 
 #include <mpi.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/time.h>
-
+#include <stdio.h>
 
 #define USAGE "Usage is: \n mpirun -np <number of processes> mplrs <infile> <outfile> \n or \n mpirun -np <number of processes> mplrs <infile> <outfile> -id <initial depth> -maxc <maxcobases> -maxd <depth> -lmin <int> -lmax <int> -scale <int> -maxbuf <int> -countonly -hist <file> -temp <prefix> -freq <file> -stop <stopfile> -checkp <checkpoint file> -restart <checkpoint file> -time <seconds> -stopafter <int>"
 
@@ -59,13 +64,13 @@ Initial lrs Author: David Avis avis@cs.mcgill.ca
 /* singly linked list */
 typedef struct slist {
         void *data;
-        slist *next;
+        struct slist *next;
 } slist;
 
 typedef struct outlist {
 	char *type;
 	char *data;
-	outlist *next;
+	struct outlist *next;
 } outlist;
 
 /* A linked-list of buffers for MPI communications.
@@ -86,7 +91,7 @@ typedef struct msgbuf {
 	int *sizes; /* sizes of sends if queued */
 	MPI_Datatype *types; /* types of sends if queued */
 
-	msgbuf *next;
+	struct msgbuf *next;
 } msgbuf;
 
 /* A structure containing the state of this process.
@@ -98,12 +103,15 @@ typedef struct mplrsv {
 	slist *cobasis_list;
 
 	int caughtsig; /* flag for catching a signal */
+	unsigned int overflow; /* 0: lrslong 1:lrslong2 2:lrsgmp */
 	/* counts */
-	unsigned long rays;
-	unsigned long vertices;
-	unsigned long bases;
-	unsigned long facets;
-	unsigned long intvertices;
+	unsigned long long rays;
+	unsigned long long vertices;
+	unsigned long long bases;
+	unsigned long long facets;
+	unsigned long long linearities;
+	unsigned long long intvertices;
+	unsigned long long deepest;
 	lrs_mp Tnum, Tden, tN, tD, Vnum, Vden;
 
 	struct timeval start, end;
@@ -116,6 +124,7 @@ typedef struct mplrsv {
 
 	/* output_list */
 	outlist *output_list;
+	outlist *ol_tail;
 
 	/* for convenience */
 	char *tfn_prefix;
@@ -125,6 +134,7 @@ typedef struct mplrsv {
 	int countonly; /* countonly */
 	int outnum; /* number of output lines buffered */
 	int maxbuf; /* maximum number of output lines to buffer before flush */
+	int outputblock; /* temporarily prevent a maxbuf-based output flush */
 
 	char *input_filename;		/* input filename */
 	char *input;			/* buffer for contents of input file */
@@ -149,9 +159,11 @@ typedef struct masterv {
 					   desiring work */
 	MPI_Request *mworkers;		/* MPI_Requests for these messages */
 	msgbuf *incoming;		/* incoming cobases from producers */
-	MPI_Request *sigcheck;		/* MPI_Requests for reporting signals*/
+	float *sigbuf; 			/*incoming signal/termination requests*/
+	MPI_Request *sigcheck;		/* MPI_Requests for reporting these*/
 
 	int checkpointing;		/* are we checkpointing now? */
+	int cleanstop;			/* was a cleanstop requested? */
 
 	/* user options */
 	unsigned int lmin;		/* option -lmin */
@@ -162,6 +174,7 @@ typedef struct masterv {
 	unsigned int maxcobases;	/* option -maxc */
 	unsigned int time_limit;	/* option -time */
 	unsigned long maxncob;		/* option -stopafter */
+	int lponly;			/* bool for -lponly option */
 
 	/* files */
 	char *hist_filename;		/*histogram filename (or NULL)*/
@@ -195,12 +208,14 @@ typedef struct consumerv {
 
 	/* status */
 	unsigned int num_producers;	/* number of producers still going */
-	unsigned int checkpoint;	/* do we want to checkpoint now? */
 
 	/* other */
+	unsigned int oflow_flag;	/* 0: no overflow message yet */
+	int *overflow;			/* number of overflowed workers*/
 	int waiting_initial;		/* waiting for initial producer,
 					 * hold output until after 'begin'
 					 */
+	int final_print;		/* do the final print? (bool) */
 } consumerv;
 
 /* MASTER and CONSUMER and INITIAL must be different */
@@ -210,6 +225,7 @@ typedef struct consumerv {
 
 #define CHECKFLAG -3	/* must be distinct negative values */
 #define RESTARTFLAG -4
+#define STOPFLAG -5
 
 /* define DEBUG to get many mplrs debug messages */
 #ifdef DEBUG
@@ -229,6 +245,15 @@ typedef struct consumerv {
 #else
 #define mprintf3(a)
 #endif
+
+/* see mts.h for details on streams */
+/* somewhat different here */
+struct mts_stream;
+typedef struct mts_stream mts_stream;
+#define MTSOUT 1
+#define MTSERR 2
+mts_stream *open_stream(int dest); /* MTSOUT: output, MTSERR: stderr */
+int stream_printf(FILE *, const char *fmt, ...);
 
 /* function prototypes */
 void mplrs_init(int, char **);
@@ -251,11 +276,11 @@ void master_restart(void);
 void master_checkpoint(void);
 void master_checkpointfile(void);
 void master_checkpointconsumer(void);
-void print_histogram(timeval *, timeval *);
+void print_histogram(struct timeval *, struct timeval *);
 
 int mplrs_worker(void);
 void clean_outgoing_buffers(void); /* shared with master */
-void do_work(const int *, const char *);
+void do_work(const int *, char *);
 void process_output(void);
 void send_output(int, char *);
 void process_cobasis(const char *);
@@ -281,4 +306,9 @@ inline void phase1_print(void);
 void final_print(void);
 inline char *dupstr(const char *str);
 
+void post_output(const char *, const char *);
+void open_outputblock(void);
+void close_outputblock(void);
+void mplrs_cleanstop(int);
+void mplrs_emergencystop(const char *);
 #endif /* MPLRSH */

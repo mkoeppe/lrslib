@@ -1,7 +1,7 @@
 /* lrslib.hpp (vertex enumeration using lexicographic reverse search) */
 #define TITLE "lrslib "
-#define VERSION "v.6.2 2016.3.28"   
-#define AUTHOR "*Copyright (C) 1995,2016, David Avis   avis@cs.mcgill.ca "
+#define VERSION "v.7.0 2018.7.1"
+#define AUTHOR "*Copyright (C) 1995,2018, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,22 +25,113 @@
 /*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for usage instructions         */
 /******************************************************************************/
 
-
-
 #ifdef PLRS
-#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <iostream>
 #endif
 
-
+#define lrs_main suf(lrs_main)
+#define lrs_overflow suf(lrs_overflow)
+#define cache_misses suf(cache_misses)
+#define cache_tries suf(cache_tries)
+#define checkcobasic suf(checkcobasic)
+#define checkindex suf(checkindex)
+#define checkpoint suf(checkpoint)
+#define checkredund suf(checkredund)
+#define copy_dict suf(copy_dict)
+#define dan_selectpivot suf(dan_selectpivot)
+#define dict_count suf(dict_count)
+#define dict_limit suf(dict_limit)
+#define die_gracefully suf(die_gracefully)
+#define digits_overflow suf(digits_overflow)
+#define getabasis suf(getabasis)
+#define getnextoutput suf(getnextoutput)
+#define infile suf(infile)
+#define infileLen suf(infileLen)
+#define infilename suf(infilename)
+#define ismin suf(ismin)
+#define lexmin suf(lexmin)
+#define lprat suf(lprat)
+#define lreadrat suf(lreadrat)
+#define lrs_alloc_dat suf(lrs_alloc_dat)
+#define lrs_alloc_dic suf(lrs_alloc_dic)
+#define lrs_cache_to_file suf(lrs_cache_to_file)
+#define lrs_cfp suf(lrs_cfp)
+#define lrs_checkbound suf(lrs_checkbound)
+#define lrs_checkpoint_seconds suf(lrs_checkpoint_seconds)
+#define lrs_close suf(lrs_close)
+#define lrs_close_outputblock suf(lrs_close_outputblock)
+#define lrs_degenerate suf(lrs_degenerate)
+#define lrs_dump_state suf(lrs_dump_state)
+#define lrs_estimate suf(lrs_estimate)
+#define lrs_exit suf(lrs_exit)
+#define lrs_stdin_to_file suf(lrs_stdin_to_file)
+#define lrs_file_to_cache suf(lrs_file_to_cache)
+#define lrs_free_all_memory suf(lrs_free_all_memory)
+#define lrs_free_dat suf(lrs_free_dat)
+#define lrs_free_dic suf(lrs_free_dic)
+#define lrs_free_dic2 suf(lrs_free_dic2)
+#define lrs_getdic suf(lrs_getdic)
+#define lrs_getfirstbasis suf(lrs_getfirstbasis)
+#define lrs_getinput suf(lrs_getinput)
+#define lrs_getnextbasis suf(lrs_getnextbasis)
+#define lrs_getray suf(lrs_getray)
+#define lrs_getsolution suf(lrs_getsolution)
+#define lrs_getvertex suf(lrs_getvertex)
+#define lrs_global_count suf(lrs_global_count)
+#define lrs_global_list suf(lrs_global_list)
+#define lrs_init suf(lrs_init)
+#define lrs_leaf suf(lrs_leaf)
+#define lrs_lpoutput suf(lrs_lpoutput)
+#define lrs_open_outputblock suf(lrs_open_outputblock)
+#define lrs_printcobasis suf(lrs_printcobasis)
+#define lrs_print_header suf(lrs_print_header)
+#define lrs_printoutput suf(lrs_printoutput)
+#define lrs_printrow suf(lrs_printrow)
+#define lrs_printtotals suf(lrs_printtotals)
+#define lrs_ratio suf(lrs_ratio)
+#define lrs_read_dat suf(lrs_read_dat)
+#define lrs_read_dic suf(lrs_read_dic)
+#define lrs_return_unexplored suf(lrs_return_unexplored)
+#define lrs_set_digits suf(lrs_set_digits)
+#define lrs_set_obj suf(lrs_set_obj)
+#define lrs_set_obj_mp suf(lrs_set_obj_mp)
+#define lrs_set_row suf(lrs_set_row)
+#define lrs_set_row_mp suf(lrs_set_row_mp)
+#define lrs_solvelp suf(lrs_solvelp)
+#define lrs_solve_lp suf(lrs_solve_lp)
+#define outfilename suf(outfilename)
+#define overflow suf(overflow)
+#define pivoting suf(pivoting)
+#define phaseone suf(phaseone)
+#define pimat suf(pimat)
+#define pivot suf(pivot)
+#define primalfeasible suf(primalfeasible)
+#define printA suf(printA)
+#define print_basis suf(print_basis)
+#define readfacets suf(readfacets)
+#define readlinearity suf(readlinearity)
+#define redund_main suf(redund_main)
+#define removecobasicindex suf(removecobasicindex)
+#define reorder suf(reorder)
+#define reorder1 suf(reorder1)
+#define rescaledet suf(rescaledet)
+#define rescalevolume suf(rescalevolume)
+#define resize suf(resize)
+#define restartpivots suf(restartpivots)
+#define reverse suf(reverse)
+#define save_basis suf(save_basis)
+#define selectpivot suf(selectpivot)
+#define timecheck suf(timecheck)
+#define tmpfilename suf(tmpfilename)
+#define update suf(update)
+#define updatevolume suf(updatevolume)
 
 #ifdef LRSLONG
 #define ARITH "lrslong.h"    /* lrs long integer arithmetic package */
 #else
-#ifdef GMP
+#if defined(GMP) || defined(FLINT)
 #define ARITH "lrsgmp.h"     /* lrs wrapper for gmp multiple precsion arithmetic    */
 #else
 #define ARITH "lrsmp.h"      /* lrs multiple precsion arithmetic    */
@@ -50,7 +141,7 @@
 
 #include ARITH
 
-#ifdef SIGNALS
+#ifndef SIGNALS
 #include <signal.h>
 #include <unistd.h>
 #define errcheck(s,e) if ((long)(e)==-1L){  perror(s);exit(1);}
@@ -66,7 +157,6 @@
 #define MINIMIZE 0L         /* maximize the lp  */
 #define GE 1L               /* constraint is >= */
 #define EQ 0L               /* constraint is linearity */
-
 
 /*************/
 /* typedefs  */
@@ -121,6 +211,7 @@ typedef struct lrs_dat			/* global problem data   */
 {
 	lrs_mp_vector Gcd;		/* Gcd of each row of numerators               */
 	lrs_mp_vector Lcm;		/* Lcm for each row of input denominators      */
+	lrs_mp_vector output;		/* One line of output dimensioned to n         */
 
 	lrs_mp sumdet;		/* sum of determinants                          */
 	lrs_mp Nvolume;		/* volume numerator                             */
@@ -128,7 +219,7 @@ typedef struct lrs_dat			/* global problem data   */
 	lrs_mp boundn;		/* objective bound numerator                    */
 	lrs_mp boundd;		/* objective bound denominator                  */
 	long unbounded;		/* lp unbounded */
-	char fname[100];		/* input file name from line 1 of input         */
+	char fname[4096];	/* program name: lrs redund fourier nash        */
 
 	long *inequality;		/* indices of inequalities corr. to cobasic ind */
 	/* initially holds order used to find starting  */
@@ -172,12 +263,12 @@ typedef struct lrs_dat			/* global problem data   */
 	long hull;			/* do convex hull computation if TRUE           */
 	long incidence;             /* print all tight inequalities (vertices/rays) */
 	long lponly;		/* true if only lp solution wanted              */
-	long maxdepth;		/* max depth to search to in treee              */
+	long long maxdepth;	/* max depth to search to in treee              */
 	long maximize;		/* flag for LP maximization                     */
 	long maxoutput;     	/* if positive, maximum number of output lines  */
 	long maxcobases;     	/* if positive, after maxcobasis unexplored subtrees reported */
 	long minimize;		/* flag for LP minimization                     */
-	long mindepth;		/* do not backtrack above mindepth              */
+	long long mindepth;	/* do not backtrack above mindepth              */
 	long nash;                  /* TRUE for computing nash equilibria           */
 	long nonnegative;		/* TRUE if last d constraints are nonnegativity */
 	long polytope;		/* TRUE for facet computation of a polytope     */
@@ -188,16 +279,19 @@ typedef struct lrs_dat			/* global problem data   */
 	long restart;		/* TRUE if restarting from some cobasis         */
 	long strace;		/* turn on  debug at basis # strace             */
 	long voronoi;		/* compute voronoi vertices by transformation   */
-        long subtreesize;       /* in estimate mode, iterates if cob_est >= subtreesize */
+        long long subtreesize;  /* in estimate mode, iterates if cob_est >= subtreesize */
+        long triangulation;     /* TRUE: the cobases printed triangulate the polytope */
+        long newstart;          /* TRUE: lrs is restarted with new arithmetic         */
 
 	/* Variables for saving/restoring cobasis,  db */
 
 	long id;			/* numbered sequentially */
 	char *name;			/* passed by user */
 
-	long saved_count[3];	/* How often to print out current cobasis */
+	long saved_count[5];	        /* Saves Q->count[*] */
 	long *saved_C;
 	lrs_mp saved_det;
+	lrs_mp saved_sumdet;
 	long saved_depth;
 	long saved_d;
 
@@ -208,26 +302,42 @@ typedef struct lrs_dat			/* global problem data   */
 
 }lrs_dat, lrs_dat_p;
 
+/***************************/
+/* mplrs hooks and hacks   */
+/***************************/
+void lrs_open_outputblock(void); /* prevent mplrs output flushes   */
+void lrs_close_outputblock(void);/* re-enable mplrs output flushes */
+void lrs_return_unexplored(lrs_dic *P,lrs_dat *Q);  /* send cobasis data for unexplored nodes */
+
+#ifndef LRSLONG
+void lrs_overflow(int i);
+void lrs_exit(int i);
+#endif
+
+#ifdef PLRS
+#define lrs_printf stream_printf
+#else
+#define lrs_printf fprintf
+#endif
 
 #ifdef PLRS
 /****************/
-/* 	PLRS 	*/
+/*      PLRS    */
 /****************/
-
+#define plrs_cobasisstring suf(plrs_cobasisstring)
 void post_output(const char *, const char *);
-void plrs_read_dat (lrs_dat * Q, std::ifstream &ff);
-void plrs_read_dic (lrs_dic * P, lrs_dat * Q, std::ifstream &ff);
-void plrs_readfacets (lrs_dat * Q, long facet[], string facets);
-void plrs_readlinearity(lrs_dat *Q, string line);
+void open_outputblock(void);
+void close_outputblock(void);
+void mplrs_cleanstop(int checkpoint);
+void mplrs_emergencystop(const char *);
+int stream_printf(FILE *str, const char *fmt, ...);
 #endif
 
 
 /*******************************/
 /* functions  for external use */
 /*******************************/
-extern FILE *lrs_cfp;			/* output file for checkpoint information       */
-long lrs_main (int argc, char *argv[]);    /* lrs driver, argv[1]=input file, [argc-1]=output file */
-long redund_main (int argc, char *argv[]); /* redund driver, argv[1]=input file, [2]=output file */
+
 lrs_dat *lrs_alloc_dat (const char *name);	/* allocate for lrs_dat structure "name"       */
 lrs_dic *lrs_alloc_dic (lrs_dat * Q);	/* allocate for lrs_dic structure corr. to Q   */
 long lrs_estimate (lrs_dic * P, lrs_dat * Q);	/* get estimates only and returns est number of cobases in subtree */
@@ -244,6 +354,7 @@ void lrs_close (char *name);	/* close lrs lib program "name"                 */
 long lrs_init (char *name);	/* initialize lrslib and arithmetic package for prog "name" */
 void lrs_lpoutput(lrs_dic * P,lrs_dat * Q, lrs_mp_vector output); /* print LP primal and dual solutions */
 void lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col); /* print cobasis for column col(verted or ray)  */
+void lrs_print_header(char *name);
 void lrs_printoutput (lrs_dat * Q, lrs_mp_vector output); /* print output array                           */
 void lrs_printrow (char name[], lrs_dat * Q, lrs_mp_vector output, long rowd); /*print row of A matrix in output[0..rowd]      */
 void lrs_printsol (lrs_dic * P, lrs_dat * Q, long col, long comment);	/* print out solution from col, comment= 0=normal,-1=geometric ray,1..inputd=linearity */
@@ -251,6 +362,9 @@ void lrs_printtotals (lrs_dic * P, lrs_dat * Q);/* print final totals for lrs   
 long lrs_set_digits (long dec_digits );  /* set lrsmp digits to equiv. of decimal dec_digits */
 long lrs_solvelp (lrs_dic * P, lrs_dat * Q, long maximize);/* solve primal feas LP:TRUE bounded else FALSE */
 
+long lrs_stdin_to_file (char *name);
+long lrs_file_to_cache(FILE *ifp);
+long lrs_cache_to_file(char *name, char *args);
 
 
 /*******************************/
@@ -310,6 +424,7 @@ void copy_dict (lrs_dat * global, lrs_dic * dest, lrs_dic * src);
 lrs_dic *alloc_memory (lrs_dat * Q);
 lrs_dic * lrs_getdic(lrs_dat *Q);
 lrs_dic *resize (lrs_dic * P, lrs_dat * Q);
+void lrs_free_all_memory(lrs_dic * P, lrs_dat * Q);
 
 /*******************************/
 /* utilities                   */
@@ -328,5 +443,9 @@ void lrs_set_row_mp(lrs_dic *P, lrs_dat *Q, long row, lrs_mp_vector num, lrs_mp_
 void lrs_set_obj(lrs_dic *P, lrs_dat *Q, long num[], long den[], long max); /* set up objective function with coeffs num[]/den[] max=MAXIMIZE or MINIMIZE  */
 void lrs_set_obj_mp(lrs_dic *P, lrs_dat *Q, lrs_mp_vector num, lrs_mp_vector den, long max);/* same as lrs_set_obj but num/den has lrs_mp type */
 
+/* plrs related */
 
-
+void lrs_open_outputblock(void);
+void lrs_close_outputblock(void);
+void lrs_return_unexplored(lrs_dic *P,lrs_dat *Q);
+void lrs_exit(int i);

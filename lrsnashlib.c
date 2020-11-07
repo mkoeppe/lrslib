@@ -19,6 +19,7 @@
 #include "lrslib.h"
 #include "lrsnashlib.h"
 
+long FirstTime;
 
 //========================================================================
 // Standard solver. Modified version of main() from lrsNash

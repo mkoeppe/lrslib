@@ -922,7 +922,7 @@ if (Q->countonly)
 
 #ifdef PLRS
 	//Make new output node
-	char *type=NULL;
+	string type;
 	
 	//Make stream to collect prat / pmp data
 	stringstream ss;
@@ -941,7 +941,7 @@ if (Q->countonly)
 			ss<<prat ("", output[i], output[0]);
 	}
 	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output(type, ss.str().c_str());
+	post_output(type.c_str(), ss.str().c_str());
 #else
   long i;
 
@@ -1013,7 +1013,7 @@ void lrs_lpoutput(lrs_dic * P,lrs_dat * Q, lrs_mp_vector output)
 /* end of lrs_lpoutput */
 /***********************/
 void 
-lrs_printrow (char name[], lrs_dat * Q, lrs_mp_vector output, long rowd)
+lrs_printrow (const char name[], lrs_dat * Q, lrs_mp_vector output, long rowd)
 /* print a row of A matrix in output in "original" form  */
 /* rowd+1 is the dimension of output vector                */
 /* if input is H-rep. output[0] contains the RHS      */
@@ -1096,7 +1096,7 @@ lrs_getsolution (lrs_dic * P, lrs_dat * Q, lrs_mp_vector output, long col)
 
 
 long
-lrs_init (char *name)       /* returns TRUE if successful, else FALSE */
+lrs_init (const char *name)       /* returns TRUE if successful, else FALSE */
 {
 
   printf ("%s", name);
@@ -1120,7 +1120,7 @@ lrs_init (char *name)       /* returns TRUE if successful, else FALSE */
 }
 
 void 
-lrs_close (char *name)
+lrs_close (const char *name)
 {
 
   fprintf (lrs_ofp, "\n*%s", name);
@@ -1998,30 +1998,24 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
 	#ifndef PLRS
 	fprintf (lrs_ofp, "\n*Voronoi Diagram: Voronoi vertices and rays are output");
 	#else
-	char *type = "header";
-	char *data = "*Voronoi Diagram: Voronoi vertices and rays are output";
 	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output(type,data);
+	post_output("header", "*Voronoi Diagram: Voronoi vertices and rays are output");
 	#endif
 	}
       if (hull){
 	#ifndef PLRS
 	fprintf (lrs_ofp, "\nH-representation");
 	#else
-	char *type = "header";
-	char *data = "H-representation";
 	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output(type, data);
+	post_output("header", "H-representation");
 	#endif
 	}
       else{
 	#ifndef PLRS
 	fprintf (lrs_ofp, "\nV-representation");
 	#else
-	char *type = "header";
-	char *data = "V-representation";
 	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output(type,data);
+	post_output("header", "V-representation");
 	#endif
 	}	
 	
@@ -2040,7 +2034,7 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
 	  	fprintf (lrs_ofp, "\nlinearity %ld ", nredundcol - k);	/*adjust nredundcol for homog. */
 		#else
 		stringstream ss;
-		char *type = "header";
+		string type = "header";
 		ss<<"linearity "<<(nredundcol -k);
 		#endif
 	  	for (i = 1; i <= nredundcol - k; i++){
@@ -2052,7 +2046,7 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
 		}
 		#ifdef PLRS
 		//post output in a nonblocking manner (a consumer thread will manage output)
-		post_output(type, ss.str().c_str());
+		post_output(type.c_str(), ss.str().c_str());
 		#endif
 	}			/* end print of linearity space */
 
@@ -2060,10 +2054,10 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
       	fprintf (lrs_ofp, "\nbegin");
       	fprintf (lrs_ofp, "\n***** %ld rational", Q->n);
 	#else
-	char *type = "header";
+	string type = "header";
 	stringstream ss;
 	ss<<"begin"<<endl<<"***** "<<Q->n<<" rational";
-	post_output(type, ss.str().c_str());
+	post_output(type.c_str(), ss.str().c_str());
 	#endif
     }
 
@@ -2694,7 +2688,7 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
 	long nincidence;	/* count number of tight inequalities */
 
 	//Make new output node
-	char *type = "cobasis";
+	string type = "cobasis";
 	//Make stream to collect prat / pmp data
 	stringstream ss;
 
@@ -2758,7 +2752,7 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
 
 	//pipe stream into output node
 	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output(type, ss.str().c_str());
+	post_output(type.c_str(), ss.str().c_str());
 
 	lrs_clear_mp(Nvol); lrs_clear_mp(Dvol);
 
@@ -4698,7 +4692,7 @@ printA (lrs_dic * P, lrs_dat * Q)	/* print the integer m by n array A
 
 
 void 
-pimat (lrs_dic * P, long r, long s, lrs_mp Nt, char name[])
+pimat (lrs_dic * P, long r, long s, lrs_mp Nt, const char name[])
  /*print the long precision integer in row r col s of matrix A */
 {
   long *B = P->B;

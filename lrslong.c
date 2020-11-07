@@ -456,7 +456,7 @@ lrs_getdigits (long *a, long *b)
 }
 
 void *
-xcalloc (long n, long s, long l, char *f)
+xcalloc (long n, long s, long l, const char *f)
 {
   void *tmp;
 
@@ -490,7 +490,7 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
 }
 
 void 
-notimpl (char s[])
+notimpl (const char s[])
 {
   fflush (stdout);
   fprintf (stderr, "\nAbnormal Termination  %s\n", s);

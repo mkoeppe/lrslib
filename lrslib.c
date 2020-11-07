@@ -110,7 +110,7 @@ lrs_main (int argc, char *argv[])
 #else
   if ( !lrs_init ("\n*lrs:"))
     return 1;
-  printf("\n%s",AUTHOR);
+  printf("\n%s", LRSLIB_AUTHOR);
 #endif
 
 /*********************************************************************************/
@@ -765,7 +765,7 @@ redund_main (int argc, char *argv[])
     return 1;
 
   printf ("\n");
-  printf (AUTHOR);
+  printf (LRSLIB_AUTHOR);
 
 /*********************************************************************************/
 /* Step 1: Allocate lrs_dat, lrs_dic and set up the problem                      */
@@ -1100,8 +1100,8 @@ lrs_init (char *name)       /* returns TRUE if successful, else FALSE */
 {
 
   printf ("%s", name);
-  printf (TITLE);
-  printf (VERSION);
+  printf (LRSLIB_TITLE);
+  printf (LRSLIB_VERSION);
   printf ("(");
   printf (BIT); 
   printf (","); 
@@ -1124,8 +1124,8 @@ lrs_close (char *name)
 {
 
   fprintf (lrs_ofp, "\n*%s", name);
-  fprintf (lrs_ofp, TITLE);
-  fprintf (lrs_ofp, VERSION);
+  fprintf (lrs_ofp, LRSLIB_TITLE);
+  fprintf (lrs_ofp, LRSLIB_VERSION);
   fprintf (lrs_ofp, "(");
   fprintf (lrs_ofp, BIT);
   fprintf (lrs_ofp, ",");

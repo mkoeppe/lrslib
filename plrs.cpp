@@ -347,7 +347,7 @@ int main(int argc, char* argv[]){
 	gettimeofday(&start, NULL);
 
 	//Print version
-	printf("*plrs:%s%s(%s)",TITLE,VERSION,ARITH);
+	printf("*plrs:%s%s(%s)",LRSLIB_TITLE,LRSLIB_VERSION,ARITH);
 
 	string outputfile;
         int firstfile=1;
@@ -397,7 +397,7 @@ int main(int argc, char* argv[]){
         }
 
         printf("%d processes\n",MAXTHREADS);
-        printf("%s\n",AUTHOR);
+        printf("%s\n",LRSLIB_AUTHOR);
 
 	if(INPUTFILE.empty()){
 		printf("No input file.\n");
@@ -418,7 +418,7 @@ int main(int argc, char* argv[]){
 	
         if(OUTSTREAM)
             {
-	     OUTSTREAM <<"*plrs:"<<TITLE<<VERSION<<"("<<ARITH<<")"<<MAXTHREADS<<" processes"<<endl<<AUTHOR<<endl;
+	     OUTSTREAM <<"*plrs:"<<LRSLIB_TITLE<<LRSLIB_VERSION<<"("<<ARITH<<")"<<MAXTHREADS<<" processes"<<endl<<LRSLIB_AUTHOR<<endl;
 	     OUTSTREAM <<"*Input taken from "<<INPUTFILE<<endl;
             }
 	if (PLRS_DEBUG_PHASE1)

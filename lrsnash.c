@@ -70,7 +70,7 @@ int openIO(void) {
   if (!lrs_init("*lrsnash:"))
     return FALSE;
   fprintf(stderr, "\n");
-  fprintf(stderr, AUTHOR);
+  fprintf(stderr, LRSLIB_AUTHOR);
   fprintf(stderr, "\n");
 	if(Outfile != NULL) {
 	  if ((lrs_ofp = fopen(Outfile, "w")) == NULL) {

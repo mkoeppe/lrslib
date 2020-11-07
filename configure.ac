@@ -104,4 +104,9 @@ AS_IF([test "x$enable_mplrs" != xno],
   ])
 AM_CONDITIONAL([MPLRS], [test x$enable_mplrs = xyes])
 
+ACX_PTHREAD
+LIBS="$PTHREAD_LIBS $LIBS"
+CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+CC="$PTHREAD_CC"
+
 AC_OUTPUT

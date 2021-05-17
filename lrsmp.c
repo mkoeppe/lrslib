@@ -988,7 +988,7 @@ comprod (lrs_mp Na, lrs_mp Nb, lrs_mp Nc, lrs_mp Nd)	/* +1 if Na*Nb > Nc*Nd  */
 
 
 void 
-notimpl (char s[])
+notimpl (const char s[])
 {
   fflush (stdout);
   fprintf (stderr, "\nAbnormal Termination  %s\n", s);
@@ -1063,7 +1063,7 @@ mulrat (lrs_mp Na, lrs_mp Da, lrs_mp Nb, lrs_mp Db, lrs_mp Nc, lrs_mp Dc)
 
 
 void *
-xcalloc (long n, long s, long l, char *f)
+xcalloc (long n, long s, long l, const char *f)
 {
   void *tmp;
 

@@ -1933,7 +1933,7 @@ void recv_counting_stats(int target)
 void initial_print(void)
 {
 		fprintf(consumer.output, "*mplrs:%s%s(%s)%d processes\n%s\n",
-			TITLE,VERSION,ARITH,mplrs.size,AUTHOR);
+			LRSLIB_TITLE,LRSLIB_VERSION,ARITH,mplrs.size,LRSLIB_AUTHOR);
 		fprintf(consumer.output, "*Input taken from %s\n",
 			mplrs.input_filename);
 		fprintf(consumer.output, "*Starting depth of %d maxcobases=%d ",
@@ -1945,8 +1945,8 @@ void initial_print(void)
 			fprintf(consumer.output, "*countonly\n");
 		if (consumer.output==stdout)
 			return;
-		printf("*mplrs:%s%s(%s)%d processes\n%s\n",TITLE,VERSION,ARITH,
-		       mplrs.size,AUTHOR);
+		printf("*mplrs:%s%s(%s)%d processes\n%s\n",LRSLIB_TITLE,LRSLIB_VERSION,ARITH,
+		       mplrs.size,LRSLIB_AUTHOR);
 		printf("*Input taken from %s\n",mplrs.input_filename);
 		printf("*Output written to: %s\n",consumer.output_filename);
 		printf("*Starting depth of %d maxcobases=%d ", master.initdepth,

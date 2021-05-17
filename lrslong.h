@@ -209,7 +209,7 @@ void lcm (lrs_mp a, lrs_mp b);	/* a = least common multiple of a, b; b is saved 
 void mulrat (lrs_mp Na, lrs_mp Da, lrs_mp Nb, lrs_mp Db, lrs_mp Nc, lrs_mp Dc);
 						       /* computes Nc/Dc=(Na/Da)*(Nb/Db) and reduce      */
 long myrandom (long num, long nrange);	/* return a random number in range 0..nrange-1    */
-void notimpl (char s[]);	/* bail out - help!                               */
+void notimpl (const char s[]);	/* bail out - help!                               */
 void rattodouble (lrs_mp a, lrs_mp b, double *x);	/* convert lrs_mp rational to double              */
 void reduceint (lrs_mp Na, lrs_mp Da);	/* divide Na by Da and return it                  */
 void reducearray (lrs_mp_vector p, long n);	/* find gcd of p[0]..p[n-1] and divide through by */
@@ -225,7 +225,7 @@ void stringcpy (char *s, char *t);	/* copy t to s pointer version               
 
 void *calloc ();
 void *malloc ();
-void *xcalloc (long n, long s, long l, char *f);
+void *xcalloc (long n, long s, long l, const char *f);
 
 void lrs_default_digits_overflow ();
 

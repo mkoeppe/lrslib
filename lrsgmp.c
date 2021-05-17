@@ -250,7 +250,7 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
 }
 
 #ifdef PLRS
-string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
+string prat (const char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
 {
 
 	//create stream to collect output
@@ -284,7 +284,7 @@ string prat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
 	return str;
 }
 
-char *cprat (char name[], lrs_mp Nin, lrs_mp Din) 
+char *cprat (const char name[], lrs_mp Nin, lrs_mp Din)
 {
 	char *ret;
 	unsigned long len;
@@ -311,7 +311,7 @@ char *cprat (char name[], lrs_mp Nin, lrs_mp Din)
 	return ret;
 }
 
-string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
+string pmp (const char name[], lrs_mp Nt)	/*print the long precision integer a */
 {
 	
 	//create stream to collect output
@@ -333,7 +333,7 @@ string pmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
 #else
 
 void
-pmp (char name[], lrs_mp Nt)
+pmp (const char name[], lrs_mp Nt)
 {
   fprintf (lrs_ofp, "%s", name);
   if (sign (Nt) != NEG)
@@ -343,7 +343,7 @@ pmp (char name[], lrs_mp Nt)
 }
 
 void 
-prat (char name[], lrs_mp Nin, lrs_mp Din)
+prat (const char name[], lrs_mp Nin, lrs_mp Din)
      /*print the long precision rational Nt/Dt  */
 {
 	lrs_mp temp1, temp2;
@@ -458,7 +458,7 @@ lrs_getdigits (long *a, long *b)
 }
 
 void *
-xcalloc (long n, long s, long l, char *f)
+xcalloc (long n, long s, long l, const char *f)
 {
   void *tmp;
 
@@ -494,7 +494,7 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
 
 
 void 
-notimpl (char s[])
+notimpl (const char s[])
 {
   fflush (stdout);
   fprintf (stderr, "\nAbnormal Termination  %s\n", s);

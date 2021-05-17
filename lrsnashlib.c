@@ -19,6 +19,7 @@
 #include "lrslib.h"
 #include "lrsnashlib.h"
 
+long FirstTime;
 
 //========================================================================
 // Standard solver. Modified version of main() from lrsNash
@@ -804,7 +805,7 @@ int lrs_solve_nash_legacy (int argc, char *argv[])
   if ( !lrs_init ("\n*nash:"))
     return 1;
   printf("\n");
-  printf(AUTHOR);
+  printf(LRSLIB_AUTHOR);
 
 /*********************************************************************************/
 /* Step 1: Allocate lrs_dat, lrs_dic and set up the problem                      */

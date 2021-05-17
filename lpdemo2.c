@@ -10,6 +10,7 @@ lpdemo2.c         Contributed by Terje Lensberg     October 28, 2015
 
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 
 #define LE -1L        // A constraint type used here. GE and EQ are defined in lrslib.h

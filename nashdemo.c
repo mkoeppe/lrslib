@@ -15,6 +15,7 @@ nashdemo
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 #include "lrsnashlib.h"
 

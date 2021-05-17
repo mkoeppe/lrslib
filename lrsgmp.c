@@ -9,15 +9,6 @@
 /* For gmp package                                                   */
 /* derived from lrslong.c and lrsmp.c                                */
 
-#ifdef PLRS
-#include <sstream>
-#include <iostream>
-#define lrs_printf stream_printf
-extern int stream_printf(FILE *, const char *, ...);
-#else
-#define lrs_printf fprintf
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -211,7 +202,6 @@ rattodouble (lrs_mp a, lrs_mp b, double *x)	/* convert lrs_mp rati
   (*x)=mptodouble (b);
   (*x) = y / (*x);
 }
-#ifdef PLRS
 
 /* read a rational or integer and convert to lrs_mp with base BASE */
 /* returns true if denominator is not one                      */
@@ -231,7 +221,6 @@ long plrs_readrat (lrs_mp Na, lrs_mp Da, const char* rat)
 	return (TRUE);
 }
 
-#endif
 
 long 
 readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_mp */
@@ -260,103 +249,72 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
   return (TRUE);
 }
 
-#ifdef PLRS
-string sprat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
+char *cprat (const char *name, lrs_mp Nin, lrs_mp Din)
 {
+  char *num, *den, *ret;
+  unsigned long len;
+  lrs_mp Nt, Dt;
+  lrs_alloc_mp (Nt); lrs_alloc_mp (Dt);
 
-	//create stream to collect output
-	stringstream ss;
-	string str;
-	char * buff;
-	lrs_mp temp1, temp2;
-	lrs_alloc_mp(temp1);
-	lrs_alloc_mp(temp2);
-	
+  copy (Nt, Nin);
+  copy (Dt, Din);
+  reduce (Nt, Dt);
 
-	copy (temp1, Nin);
-  	copy (temp2, Din);
-  	reduce (temp1, temp2);
-  	ss<<name;
-	if (sign (temp1) != NEG)
-		ss<<" ";
-//	buff = mpz_get_str(NULL, 10, temp1);
-  	buff = mpgetstr(NULL, 10, temp1);
-  	ss<<buff;
-	free(buff);
-  	if (!one(temp2)){
-		buff = mpgetstr(NULL, 10, temp2);
-		ss<<"/"<<buff;
-		free(buff);
-	}
-	ss<<" ";
-	lrs_clear_mp(temp1);
-	lrs_clear_mp(temp2);
-	//pipe stream to single string
-	str = ss.str();
-	return str;
+  num = mpgetstr10(NULL, Nt);
+  den = mpgetstr10(NULL, Dt);
+  len = snprintf(NULL, 0, " %s %s/%s", name, num, den);
+  ret = (char*)malloc(sizeof(char)*(len+1));
+
+  if(one(Dt))
+    {
+     if (sign (Nt) != NEG)
+       sprintf(ret, "%s %s", name, num);
+     else
+       sprintf(ret, "%s%s", name, num);
+    }
+  else
+    {
+     if (sign (Nt) != NEG)
+       sprintf(ret, " %s %s/%s", name, num, den);
+     else
+       sprintf(ret, "%s%s/%s", name, num, den);
+    }
+
+  free(num); free(den);
+  lrs_clear_mp(Nt); lrs_clear_mp(Dt);
+  return ret;
+}
+char *cpmp (const char *name, lrs_mp Nin)
+{
+  char *num, *ret;
+  unsigned long len;
+
+  num = mpgetstr10(NULL, Nin);
+  len = snprintf(NULL, 0, "%s %s", name, num);
+  ret = (char*)malloc(sizeof(char)*(len+1));
+
+  if (sign (Nin) != NEG)
+       sprintf(ret, "%s %s", name, num);
+  else
+       sprintf(ret, "%s%s", name, num);
+  free(num);
+  return ret;
 }
 
-char *cprat (char name[], lrs_mp Nin, lrs_mp Din) 
-{
-	char *ret;
-	unsigned long len;
-	int i, offset=0;
-	string s;
-	const char *cstr;
-
-	s  = sprat(name,Nin,Din);
-	cstr = s.c_str();
-	len = strlen(cstr);
-	ret = (char *)malloc(sizeof(char)*(len+1));
-
-	for (i=0; i+offset<len+1;)
-	{
-		if (cstr[i+offset]!=' ')
-		{
-			ret[i] = cstr[i+offset];
-			i++;
-		}
-		else /* skip whitespace */
-			offset++;
-	}
-		
-	return ret;
-}
-
-string spmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
-{
-	
-	//create stream to collect output
-	stringstream ss;
-	string str;
-	char * buff;
-	ss<<name;
-
-  	if (sign (Nt) != NEG)
-		ss<<" ";
-	buff = mpgetstr(NULL,10,Nt);
-  	ss<<buff<<" ";
-	free(buff);
-	
-	//pipe stream to single string
-	str = ss.str();
-	return str;
-}
-#endif
 
 void
-pmp (char name[], lrs_mp Nt)
+pmp (const char *name, lrs_mp Nt)
 {
-  lrs_printf (lrs_ofp, "%s", name);
+  fprintf (lrs_ofp, "%s", name);
   if (sign (Nt) != NEG)
-    lrs_printf (lrs_ofp, " ");
+    fprintf (lrs_ofp, " ");
 //mpz_out_str (lrs_ofp,10,Nt);
   mpoutstr (lrs_ofp,10,Nt);
-  lrs_printf (lrs_ofp, " ");
+  fprintf (lrs_ofp, " ");
 }
 
 void 
-prat (char name[], lrs_mp Nin, lrs_mp Din)
+prat (const char *name, lrs_mp Nin, lrs_mp Din)
      /*print the long precision rational Nt/Dt  */
 {
 	lrs_mp temp1, temp2;
@@ -365,16 +323,16 @@ prat (char name[], lrs_mp Nin, lrs_mp Din)
   copy (temp1, Nin);
   copy (temp2, Din);
   reduce (temp1, temp2);
-  lrs_printf (lrs_ofp, "%s", name);
+  fprintf (lrs_ofp, "%s", name);
   if (sign (temp1) != NEG)
-    lrs_printf (lrs_ofp, " ");
+    fprintf (lrs_ofp, " ");
   mpoutstr (lrs_ofp,10,temp1);
   if ( !one(temp2))
     {
-    lrs_printf (lrs_ofp, "/");
+    fprintf (lrs_ofp, "/");
     mpoutstr (lrs_ofp,10,temp2);
     }
-  lrs_printf (lrs_ofp, " ");
+  fprintf (lrs_ofp, " ");
 	lrs_clear_mp(temp1);
 	lrs_clear_mp(temp2);
 }				/* prat */
@@ -470,7 +428,7 @@ lrs_getdigits (long *a, long *b)
 }
 
 void *
-xcalloc (long n, long s, long l, char *f)
+xcalloc (long n, long s, long l, const char *f)
 {
   void *tmp;
 
@@ -501,7 +459,7 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
 
 
 void 
-notimpl (char s[])
+notimpl (const char *s)
 {
   fflush (stdout);
   fprintf (stderr, "\nAbnormal Termination  %s\n", s);

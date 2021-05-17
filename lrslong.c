@@ -6,8 +6,6 @@
 /* authored by  Ambros Marzetta    Revision 1.2  1998/05/27          */
 
 #ifdef PLRS
-#include <sstream>
-#include <iostream>
 #endif
 
 #include <stdlib.h>
@@ -208,6 +206,45 @@ mptoi (lrs_mp a)        /* convert lrs_mp to long */
   return (*a);
 }
 
+/* return char * representation of a in base 10.
+ * use out if non-NULL, otherwise allocate and return.
+ */
+char *mpgetstr10(char *out, lrs_mp a)
+{
+  char *buf=NULL;
+  int len=0;
+#ifndef B128
+  len = snprintf(buf, 0, "%lld", *a);
+  if (out != NULL)
+    buf = out;
+  else
+    buf = (char*)malloc(sizeof(char)*(len+1));
+  sprintf(buf, "%lld", *a);
+  return buf;
+#else
+  /* could just allocate 41 chars or so instead of counting */
+  long long lower = *a % P10_INT64;
+  long long upper = *a / P10_INT64;
+  if (upper != 0)
+    len=snprintf(buf, 0, "%lld", upper);
+  else if (lower < 0)
+    len++; /* - */
+  len+=snprintf(buf, 0, "%lld", abs128(lower));
+  if (out != NULL)
+    buf = out;
+  else
+    buf = (char*)malloc(sizeof(char)*(len+1));
+  len = 0;
+  if (upper != 0)
+    len=sprintf(buf, "%lld", upper);
+  else if (lower < 0)
+    len+=sprintf(buf+len, "-"); /* - */
+  len+=sprintf(buf+len, "%lld", abs128(lower));
+  return buf;
+#endif
+}
+
+
 void 
 rattodouble (lrs_mp a, lrs_mp b, double *x)	/* convert lrs_mp rati
 						   onal to double */
@@ -246,7 +283,6 @@ readrat (lrs_mp Na, lrs_mp Da)	/* read a rational or integer and convert to lrs_
   return (TRUE);
 }
 
-#ifdef PLRS
 /* read a rational or integer and convert to lrs_mp with base BASE */
 /* returns true if denominator is not one                      */
 long plrs_readrat (lrs_mp Na, lrs_mp Da, const char* rat)
@@ -264,7 +300,6 @@ long plrs_readrat (lrs_mp Na, lrs_mp Da, const char* rat)
 	return (TRUE);
 }
 
-#endif
 
 void 
 readmp (lrs_mp a)		/* read an integer and convert to lrs_mp */
@@ -279,145 +314,82 @@ readmp (lrs_mp a)		/* read an integer and convert to lrs_mp */
   itomp (in, a);
 }
 
-#ifdef PLRS
-
-string sprat (char name[], lrs_mp Nin, lrs_mp Din)	/*reduce and print Nin/Din  */
+char *cprat (const char *name, lrs_mp Nin, lrs_mp Din)
 {
+  char *num, *den, *ret;
+  unsigned long len;
+  lrs_mp Nt, Dt;
+  lrs_alloc_mp (Nt); lrs_alloc_mp (Dt);
 
-	//create stream to collect output
-	stringstream ss;
-	string str;
-	
-	lrs_mp Nt, Dt;
-	copy (Nt, Nin);
-	copy (Dt, Din);
-	reduce (Nt, Dt);
-	if (sign (Nt) != NEG)
-		ss<<" ";
-#ifndef B128
-	ss<<name<<*Nt;
-	if (*Dt != 1)
-		ss<<"/"<<*Dt;
-#else
-	__int128 a = *Nt;
-	char buf[64]; /* more than enough for 2^128 */
-	buf[63] = '\0';
-	int i;
-	if (a < 0)
-		ss << '-';
-	a = abs128(a);
-	for (i=62; a!=0 && i>=0; a=a/10, i--)
-		buf[i] = '0' + a%10;
-	if (i == 62) /* *Nt == 0 */
-		ss << '0';
-	else
-		ss << buf+i+1;
-	if (*Dt != 1)
-	{
-		ss << '/';
-		a = *Dt;
-		if (a < 0)
-			ss<< '-';
-		a = abs128(a);
-		for (i=62; a!=0 && i>=0; a=a/10, i--)
-			buf[i] = '0' + a%10;
-		if (i == 62) /* *Dt == 0, uh oh */
-			ss << '0';
-		else
-			ss << buf+i+1;
-	}
-#endif
-	ss<<" ";
-	//pipe stream to single string
-	str = ss.str();
-	return str;
+  copy (Nt, Nin);
+  copy (Dt, Din);
+  reduce (Nt, Dt);
+
+  num = mpgetstr10(NULL, Nt);
+  den = mpgetstr10(NULL, Dt);
+  len = snprintf(NULL, 0, " %s %s/%s", name, num, den);
+  ret = (char*)malloc(sizeof(char)*(len+1));
+
+  if(one(Dt))
+    {
+     if (sign (Nt) != NEG)
+       sprintf(ret, "%s %s", name, num);
+     else
+       sprintf(ret, "%s%s", name, num);
+    }
+  else
+    {
+     if (sign (Nt) != NEG)
+       sprintf(ret, "%s %s/%s", name, num, den);
+     else
+       sprintf(ret, "%s%s/%s", name, num, den);
+    }
+
+  free(num); free(den);
+  lrs_clear_mp(Nt); lrs_clear_mp(Dt);
+  return ret;
+}
+char *cpmp (const char *name, lrs_mp Nin)
+{
+  char *num, *ret;
+  unsigned long len;
+
+  num = mpgetstr10(NULL, Nin);
+  len = snprintf(NULL, 0, "%s %s", name, num);
+  ret = (char*)malloc(sizeof(char)*(len+1));
+
+  if (sign (Nin) != NEG)
+       sprintf(ret, "%s %s", name, num);
+  else
+       sprintf(ret, "%s%s", name, num);
+  free(num); 
+  return ret;
 }
 
-char *cprat (char name[], lrs_mp Nin, lrs_mp Din)
-{
-        char *ret;
-        unsigned long len;
-        int i, offset=0;
-	string s;
-        const char *cstr;
-
-	s = sprat(name,Nin,Din);
-	cstr = s.c_str();
-        len = strlen(cstr);
-        ret = (char *)malloc(sizeof(char)*(len+1));
-
-        for (i=0; i+offset<len+1;)
-        {
-                if (cstr[i+offset]!=' ')
-                {
-                        ret[i] = cstr[i+offset];
-                        i++;
-                }
-                else /* skip whitespace */
-                        offset++;
-        }
-
-        return ret;
-}
-
-string spmp (char name[], lrs_mp Nt)	/*print the long precision integer a */
-{
-	//create stream to collect output
-	stringstream ss;
-	string str;
-
-	ss<<name;
-	if(sign(Nt) != NEG)
-		ss<<" ";
-#ifndef B128
-	ss<<*Nt<<" ";
-#else
-      {
-	__int128 a = *Nt;
-        char buf[64]; /* more than enough for 2^128 */
-	buf[63] = '\0';
-	int i;
-	if (a < 0)
-		ss << '-';
-        a = abs128(a);
-	for (i=62; a!=0 && i>=0; a=a/10, i--)
-		buf[i] = '0' + a%10;
-	if (i == 62) /* *Nt == 0 */
-		ss << '0';
-	else
-		ss << buf+i+1;
-      }
-      ss << " ";
-#endif
-	//pipe stream to single string
-	str = ss.str();
-	return str;
-}
-#endif
 void 
-pmp (char name[], lrs_mp Nt)
+pmp (const char *name, lrs_mp Nt)
 {
-  lrs_printf (lrs_ofp, "%s", name);
+  fprintf (lrs_ofp, "%s", name);
   if (sign (Nt) != NEG)
-    lrs_printf (lrs_ofp, " ");
+    fprintf (lrs_ofp, " ");
 #ifndef B128
-  lrs_printf (lrs_ofp, "%lld", *Nt);
+  fprintf (lrs_ofp, "%lld", *Nt);
 #else
   {
     long long lower = *Nt % P10_INT64;
     long long upper = *Nt / P10_INT64;
     if (upper != 0)
-      lrs_printf(lrs_ofp, "%lld", upper);
+      fprintf(lrs_ofp, "%lld", upper);
     else if (lower < 0)
-      lrs_printf(lrs_ofp, "-");
-    lrs_printf(lrs_ofp, "%lld", abs128(lower));
+      fprintf(lrs_ofp, "-");
+    fprintf(lrs_ofp, "%lld", abs128(lower));
   }
 #endif
-  lrs_printf (lrs_ofp, " ");
+  fprintf (lrs_ofp, " ");
 }
 
 void 
-prat (char name[], lrs_mp Nin, lrs_mp Din)
+prat (const char *name, lrs_mp Nin, lrs_mp Din)
      /*print the long precision rational Nt/Dt  */
 {
   lrs_mp Nt, Dt;
@@ -425,35 +397,35 @@ prat (char name[], lrs_mp Nin, lrs_mp Din)
   copy (Dt, Din);
   reduce (Nt, Dt);
   if (sign (Nt) != NEG)
-    lrs_printf (lrs_ofp, " ");
+    fprintf (lrs_ofp, " ");
 #ifndef B128
-  lrs_printf (lrs_ofp, "%s%lld", name, *Nt);
+  fprintf (lrs_ofp, "%s%lld", name, *Nt);
   if (*Dt != 1)
-    lrs_printf (lrs_ofp, "/%lld", *Dt);
+    fprintf (lrs_ofp, "/%lld", *Dt);
 #else
   {
     long long lower = *Nt % P10_INT64;
     long long upper = *Nt / P10_INT64;
-    lrs_printf(lrs_ofp, "%s", name);
+    fprintf(lrs_ofp, "%s", name);
     if (upper != 0)
-      lrs_printf(lrs_ofp, "%lld", upper);
+      fprintf(lrs_ofp, "%lld", upper);
     else if (lower < 0)
-      lrs_printf(lrs_ofp, "-");
-    lrs_printf(lrs_ofp, "%lld", abs128(lower));
+      fprintf(lrs_ofp, "-");
+    fprintf(lrs_ofp, "%lld", abs128(lower));
     if (*Dt != 1)
     {
       lower = *Dt % P10_INT64;
       upper = *Dt / P10_INT64;
-      lrs_printf(lrs_ofp, "/");
+      fprintf(lrs_ofp, "/");
       if (upper != 0)
-        lrs_printf(lrs_ofp, "%lld", upper);
+        fprintf(lrs_ofp, "%lld", upper);
       if (lower < 0)
-        lrs_printf(lrs_ofp, "-");
-      lrs_printf(lrs_ofp, "%lld", abs128(lower));
+        fprintf(lrs_ofp, "-");
+      fprintf(lrs_ofp, "%lld", abs128(lower));
     }
   }
 #endif
-  lrs_printf (lrs_ofp, " ");
+  fprintf (lrs_ofp, " ");
 }				/* prat */
 
 
@@ -547,7 +519,7 @@ lrs_getdigits (long *a, long *b)
 }
 
 void *
-xcalloc (long n, long s, long l, char *f)
+xcalloc (long n, long s, long l, const char *f)
 {
   void *tmp;
 
@@ -578,7 +550,7 @@ lrs_mp_init (long dec_digits, FILE * fpin, FILE * fpout)
 }
 
 void 
-notimpl (char s[])
+notimpl (const char *s)
 {
   fflush (stdout);
   fprintf (stderr, "\nAbnormal Termination  %s\n", s);

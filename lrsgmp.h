@@ -27,11 +27,6 @@
    and this file is derived from lrsmp.h and lrslong.h
 */
 
-#ifdef PLRS
-#include <string>
-using namespace std;
-#endif
-
 #ifdef GMP
  #include "gmp.h"
 #elif defined(FLINT)
@@ -104,9 +99,12 @@ using namespace std;
 #define notimpl suf(notimpl)
 #define pmp suf(pmp)
 #define prat suf(prat)
+#define cprat suf(cprat)
+#define cpmp  suf(cpmp )
 #define rattodouble suf(rattodouble)
 #define readmp suf(readmp)
 #define readrat suf(readrat)
+#define plrs_readrat suf(plrs_readrat)
 #define reduce suf(reduce)
 #define reducearray suf(reducearray)
 #define reduceint suf(reduceint)
@@ -132,6 +130,7 @@ using namespace std;
  #define itomp(in, a)            mpz_set_si( (a) , (in) )
  #define mptoi(a)                mpz_get_si( (a) )
  #define mptodouble(a)           mpz_get_d ( (a) )
+ #define mpgetstr10(a,c)	 mpgetstr(a,10,c)
  #define mpgetstr(a,b,c)         mpz_get_str((a),(b),(c))
 #ifndef PLRS
  #define mpoutstr(a,b,c)         mpz_out_str((a),(b),(c))
@@ -139,7 +138,7 @@ using namespace std;
  #define mpoutstr(a,b,c) \
   {\
     char *tmp = mpz_get_str(NULL,10,c);\
-    lrs_printf(lrs_ofp, "%s", tmp);\
+    fprintf(lrs_ofp, "%s", tmp);\
     free(tmp);\
   }
 #endif
@@ -248,13 +247,12 @@ void atomp (const char s[], lrs_mp a);	/* convert string to lrs_mp integer      
 long compare (lrs_mp a, lrs_mp b);	/* a ? b and returns -1,0,1 for <,=,>             */
 void linint (lrs_mp a, long ka, lrs_mp b, long kb);     /* compute a*ka+b*kb --> a        */
 #ifdef PLRS
-string spmp (char name[], lrs_mp a);	/* print the long precision integer a             */
-string sprat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
-char *cprat(char name[], lrs_mp Nt, lrs_mp Dt); /* C version of prat */
 long plrs_readrat (lrs_mp Na, lrs_mp Da, const char * rat);	/* take a rational number and convert to lrs_mp   */
 #endif
-void pmp (char name[], lrs_mp a);	/* print the long precision integer a             */
-void prat (char name[], lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
+char *cprat(const char *name, lrs_mp Nt, lrs_mp Dt); /* mp rat to char  */
+char *cpmp(const char *name, lrs_mp Nt);             /* mp int to char  */
+void pmp (const char *name, lrs_mp a);	/* print the long precision integer a             */
+void prat (const char *name, lrs_mp Nt, lrs_mp Dt);	/* reduce and print  Nt/Dt                        */
 void readmp (lrs_mp a);		/* read an integer and convert to lrs_mp          */
 long readrat (lrs_mp Na, lrs_mp Da);	/* read a rational or int and convert to lrs_mp   */
 void reduce (lrs_mp Na, lrs_mp Da);	/* reduces Na Da by gcd(Na,Da)                    */
@@ -274,7 +272,7 @@ void lcm (lrs_mp a, lrs_mp b);	/* a = least common multiple of a, b; b is saved 
 void mulrat (lrs_mp Na, lrs_mp Da, lrs_mp Nb, lrs_mp Db, lrs_mp Nc, lrs_mp Dc);
 						       /* computes Nc/Dc=(Na/Da)*(Nb/Db) and reduce      */
 long myrandom (long num, long nrange);	/* return a random number in range 0..nrange-1    */
-void notimpl (char s[]);	/* bail out - help!                               */
+void notimpl (const char *s);	/* bail out - help!                               */
 void rattodouble (lrs_mp a, lrs_mp b, double *x);	/* convert lrs_mp rational to double              */
 void reduceint (lrs_mp Na, lrs_mp Da);	/* divide Na by Da and return it                  */
 void reducearray (lrs_mp_vector p, long n);	/* find gcd of p[0]..p[n-1] and divide through by */
@@ -293,7 +291,7 @@ void *calloc ();
 void *malloc ();
 #endif
 
-void *xcalloc (long n, long s, long l, char *f);
+void *xcalloc (long n, long s, long l, const char *f);
 
 void lrs_default_digits_overflow ();
 void lrs_exit(int i); 

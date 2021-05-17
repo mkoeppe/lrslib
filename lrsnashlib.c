@@ -16,16 +16,20 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 #include "lrsnashlib.h"
 
+static long FirstTime; /* set this to true for every new game to be solved */
+long Debug_flag;
+long Verbose_flag;
 
 //========================================================================
 // Standard solver. Modified version of main() from lrsNash
 //========================================================================
 int lrs_solve_nash(game * g)
 {
-  lrs_dic *P1, *P2;             /* structure for holding current dictionary and indices */
+  lrs_dic *P1;             /* structure for holding current dictionary and indices */
   lrs_dat *Q1, *Q2;             /* structure for holding static problem data            */
 
   lrs_mp_vector output1;        /* holds one line of output; ray,vertex,facet,linearity */
@@ -325,13 +329,11 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
 /* assign local variables to structures */
 
   lrs_mp_matrix A;
-  long *B, *C, *Row, *Col;
+  long *B, *C, *Col;
   long *inequality;
   long *linearity;
   long hull = Q->hull;
   long m, d, lastdv, nlinearity, nredundcol;
-
-  static long ocount = 0;
 
   m = D->m;
   d = D->d;
@@ -344,7 +346,6 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
   A = D->A;
   B = D->B;
   C = D->C;
-  Row = D->Row;
   Col = D->Col;
   inequality = Q->inequality;
 
@@ -459,7 +460,6 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
 
   if (Q->verbose) {
     fprintf(lrs_ofp, "\nNumber of pivots for starting dictionary: %ld", Q->count[3]);
-    ocount = Q->count[3];
   }
 
 /* Do dual pivots to get primal feasibility */
@@ -467,14 +467,12 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
     if (Q->verbose) {
       fprintf(lrs_ofp, "\nNumber of pivots for feasible solution: %ld", Q->count[3]);
       fprintf(lrs_ofp, " - No feasible solution");
-      ocount = Q->count[3];
     }
     return FALSE;
   }
 
   if (Q->verbose) {
     fprintf(lrs_ofp, "\nNumber of pivots for feasible solution: %ld", Q->count[3]);
-    ocount = Q->count[3];
   }
 
 /* Now solve LP if objective function was given */
@@ -768,7 +766,7 @@ long lrs_nashoutput(lrs_dat * Q, lrs_mp_vector output, long player)
 int lrs_solve_nash_legacy (int argc, char *argv[])
 // Handles legacy input files
 {
-  lrs_dic *P1,*P2;		/* structure for holding current dictionary and indices */
+  lrs_dic *P1;			/* structure for holding current dictionary and indices */
   lrs_dat *Q1,*Q2;		/* structure for holding static problem data            */
 
   lrs_mp_vector output1;	/* holds one line of output; ray,vertex,facet,linearity */

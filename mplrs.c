@@ -34,6 +34,8 @@ mplrsv mplrs;       /* state of this process */
 masterv master;     /* state of the master   */
 consumerv consumer; /* state of the consumer */
 
+char argv0[] = "mplrs-internal"; /* warning removal for C++ */
+
 /******************
  * initialization *
  ******************/
@@ -58,11 +60,13 @@ int main(int argc, char **argv)
 
 void mplrs_init(int argc, char **argv)
 {
-	int i,j;
-	int count;
+	int i,j,count;
+	int header[4];
 	char c;
 	time_t curt = time(NULL);
 	char *tim, *tim1;
+	char *offs, *tmp;
+	long *wred = NULL; /* redineq for redund */
 
 	/* make timestamp for filenames */
 	tim = ctime(&curt);
@@ -89,25 +93,70 @@ void mplrs_init(int argc, char **argv)
 	/* process commandline arguments, set input and output files */
 	mplrs_commandline(argc, argv);
 
-	if (mplrs.rank == MASTER || mplrs.rank == CONSUMER)
+	if (mplrs.rank == MASTER)
 	{
-		/* open input file for reading on master, open output file for
-	 	 * writing on consumer, open histogram file for writing on
-	 	 * master -- if these files are to be used.
-	 	 */
+		/* open input file for reading on master, histogram
+		 * file for writing on master, if used.
+		 */
 		mplrs_initfiles();
-		if (mplrs.rank == MASTER)
-			master_sendfile();
+		master_sendfile();
+		/* may have produced warnings from stage 0 lrs, flush them. */
+		if (mplrs.output_list == NULL) /* need to prod consumer */
+			post_output("warning"," "); /* see waiting_initial */
+		process_output();          /* before starting a flush */
+		clean_outgoing_buffers();
 	}
 	else
 	{
+		/* open output file for writing on consumer, open histogram file
+		 * for writing on consumer, if used.
+		 */
+		if (mplrs.rank == CONSUMER)
+			mplrs_initfiles();
 		/* receive input file from master */
-		MPI_Recv(&count, 1, MPI_INT, 0, 20, MPI_COMM_WORLD, 
+		MPI_Recv(header, 4, MPI_INT, 0, 20, MPI_COMM_WORLD, 
 			 MPI_STATUS_IGNORE);
-		mplrs.input = (char *)malloc(sizeof(char)*(count+1));
-		MPI_Recv(mplrs.input, count, MPI_CHAR, 0, 20, 
-			 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		count = header[0];
+		mplrs.abortinit = header[3];
+		mplrs.input = malloc(sizeof(char)*(count+1));
+		if (!mplrs.abortinit) /* don't need if aborting, may be big */
+			MPI_Recv(mplrs.input, header[0], MPI_CHAR, 0, 20, 
+				 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		mplrs.input[count] = '\0';
+		if (header[1]>0 && mplrs.rank == CONSUMER) /* sigh ... */
+		{
+			consumer.redineq = calloc((header[2]+1),
+							  sizeof(long));
+			mplrs.redund = 1;
+		}
+		else if (header[1]>0) /* handle redund split */
+		{
+			wred = malloc(header[1]*sizeof(long));
+			MPI_Recv(wred, header[1], MPI_LONG, 0, 20,
+				 MPI_COMM_WORLD, MPI_STATUS_IGNORE); 
+			count+=snprintf(NULL, 0, "\nredund_list %d", header[1]);
+			for (i=0; i<header[1]; i++)
+				count+=snprintf(NULL, 0, " %ld", wred[i]);
+			mprintf(("%d: got redund_list %d option\n",mplrs.rank,
+				 header[1]));
+			mplrs.redund = 1;
 
+			tmp = realloc(mplrs.input,sizeof(char)*(count+1));
+			if (tmp == NULL)
+			{
+				fprintf(stderr, "Error: unable to allocate memory for input\n");
+				MPI_Abort(MPI_COMM_WORLD, 1);
+			}
+			mplrs.input = tmp;
+			
+			offs = mplrs.input + header[0]; /* concatenate */
+			if (mplrs.rank != CONSUMER)
+			{
+				offs += sprintf(offs, "\nredund_list %d",header[1]);
+				for (i=0; i<header[1]; i++)
+					offs += sprintf(offs, " %ld", wred[i]);
+			}
+		}
 		mplrs.input[count] = '\0';
 
 		/* get number of chars needed for worker files */
@@ -117,7 +166,7 @@ void mplrs_init(int argc, char **argv)
 		i += 6+strlen(tim1); /* mplrs_TIMESTAMP */
 		i += strlen(mplrs.tfn_prefix) + strlen(mplrs.input_filename) + 
 		     i + 6; /* _%d.ine\0 */
-		mplrs.tfn = (char *)malloc(sizeof(char) * i);
+		mplrs.tfn = malloc(sizeof(char) * i);
 		sprintf(mplrs.tfn, "%smplrs_%s%s_%d.ine", 
 						  mplrs.tfn_prefix, tim1, 
 						  mplrs.input_filename,
@@ -143,6 +192,7 @@ void mplrs_init(int argc, char **argv)
          */
 	signal(SIGTERM, mplrs_caughtsig);
 	signal(SIGHUP, mplrs_caughtsig);
+	free(wred);
 }
 
 /* if we catch a signal, set a flag to exit */
@@ -197,6 +247,7 @@ void mplrs_cleanstop(int checkpoint)
 	/* mplrs_worker cleanup */
 	mplrs.outputblock = 0;
 	process_output();
+	process_curwarn();
 	return_unfinished_cobases();
 	clean_outgoing_buffers();
 	/* mplrs_worker start of loop ... */
@@ -218,7 +269,7 @@ void mplrs_cleanstop(int checkpoint)
 			else /* forget this cobasis */
 			{
 				len = header[0];
-				cobasis = (char *)malloc(sizeof(char)*(len+1));
+				cobasis = malloc(sizeof(char)*(len+1));
 				MPI_Recv(cobasis, len, MPI_CHAR, MASTER,
 					 MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				cobasis[len] = '\0';
@@ -252,8 +303,37 @@ void master_sendfile(void)
 {
 	char *buf;
 	int count=0;
-	int c, i;
+	int extra=0;
+	int header[4]={0};
+		/* header: input file size, #redund to do this worker, m_A,
+			   abortinit */
+	int c, i, j, chunksize=0, rem=0, rstart;
+	long rcount = 0, *wred = NULL;
+	long m;
 
+	/* get m from lrs */
+	mplrs.tfn = mplrs.input_filename;
+
+	mplrs_worker_init(); /* we're the master but okay */
+	header[3] = mplrs.abortinit; /* tell workers to abort if bad input */
+	if (mplrs.overflow != 3 && mplrs.abortinit == 0)
+		m = mplrs.P->m_A;
+	else /* overflow in mplrs_worker_init and non-hybrid, can't start run */
+		m = 0;
+	header[2] = m;
+	if (mplrs.overflow!=3 && mplrs.R->redund && mplrs.abortinit == 0)
+	{
+		master.redund = 1;
+		for (i=1; i<=m; i++)
+			if (mplrs.R->redineq[i] == 1)
+				rcount++;
+	}
+
+	/* check free TODO*/
+	if (mplrs.overflow != 3 && !mplrs.abortinit)
+	{
+		mplrs.lrs_main(0,NULL,&mplrs.P,&mplrs.Q,0,2,NULL,mplrs.R);
+	}
 	c = fgetc(master.input);
 
 	while (c!=EOF)
@@ -262,7 +342,10 @@ void master_sendfile(void)
 		c = fgetc(master.input);
 	}
 
-	buf = (char *)malloc(sizeof(char)*(count));
+	if (mplrs.countonly)
+		extra = 10; /* \ncountonly */
+ 
+	buf = malloc(sizeof(char)*(count+extra));
 
 	fseek(master.input, 0, SEEK_SET);
 	
@@ -271,16 +354,71 @@ void master_sendfile(void)
 		c = fgetc(master.input);
 		buf[i]=c;
 	}
+	if (mplrs.countonly)
+		sprintf(buf+i, "\ncountonly");
+	header[0] = count+extra;
+	if (master.redund)
+	{
+		/* will split into chunksize sized blocks,
+		 * also add the rem-many extra ones to low-id workers
+		 */
+		chunksize = rcount / (mplrs.size-2);
+		rem = rcount % (mplrs.size - 2);
+	}
+	if (chunksize == 0) /* m smaller than #workers */
+		master.max_redundworker = rem+1;
+	else
+		master.max_redundworker = mplrs.size-1;
+	mprintf(("M: making chunks of size %d rem %d, max_redundworker=%d\n",
+		 chunksize,rem,master.max_redundworker));
 
+	wred = calloc(chunksize+1, sizeof(long));
+	
+	rstart = 1;
 	for (i=0; i<mplrs.size; i++)
 	{
-		if (i==MASTER || i==CONSUMER)
+		header[1] = 0;
+		if (i==MASTER)
 			continue;
+		else if (master.redund && i==CONSUMER)
+		{
+			header[1] = 1;
+		}
+		else if (master.redund && i<=master.max_redundworker)
+		{
+			/* set redund options */
+			header[1] = chunksize;
+			if (rem>0)
+			{
+				header[1]++; 
+				rem--;
+			}
+			for (j=0; j<header[1]; j++)
+			{
+				for (; rstart<=m; rstart++)
+					if (mplrs.R->redineq[rstart] == 1 )
+					{
+						wred[j] = rstart++;
+						break;
+					}
+			}
+		}
+		else if (master.redund) /* this worker gets no jobs */
+			header[1] = header[2] = 0; /* not actually needed */
 		mprintf2(("M: Sending input file to %d\n", i));
-		MPI_Send(&count, 1, MPI_INT, i, 20, MPI_COMM_WORLD);
-		MPI_Send(buf, count, MPI_CHAR, i, 20, MPI_COMM_WORLD);
+		MPI_Send(header, 4, MPI_INT, i, 20, MPI_COMM_WORLD);
+		if (!mplrs.abortinit) /* don't need if aborting, may be big */
+			MPI_Send(buf, count+extra, MPI_CHAR, i, 20,
+				 MPI_COMM_WORLD);
+		if (header[1]>0 && i!=CONSUMER) /* send redund portion */
+			MPI_Send(wred, header[1], MPI_LONG,i,20,MPI_COMM_WORLD);
 	}
-	fseek(master.input, 0, SEEK_SET);
+	/* fseek(master.input, 0, SEEK_SET); */
+	fclose(master.input);
+	free(mplrs.R->redineq);
+	free(mplrs.R->facet);
+	free(mplrs.R);
+	free(wred);
 	free(buf);
 }
 
@@ -288,8 +426,13 @@ void master_sendfile(void)
 void mplrs_initstrucs(void)
 {
 	mplrs.cobasis_list = NULL;
+	mplrs.lrs_main = mplrs_init_lrs_main;
+	mplrs.P = NULL;
+	mplrs.Q = NULL;
+	mplrs.R = NULL;
 
 	mplrs.caughtsig = 0;
+	mplrs.abortinit = 0;
 	mplrs.overflow = 0;
 	mplrs.rays = 0;
 	mplrs.vertices = 0;
@@ -308,8 +451,15 @@ void mplrs_initstrucs(void)
 	mplrs.output_list = NULL;
 	mplrs.ol_tail = NULL;
 	mplrs.outnum = 0;
+	mplrs.finalwarn = malloc(sizeof(char)*32);
+	mplrs.finalwarn_len = 32;
+	mplrs.curwarn = malloc(sizeof(char)*32);
+	mplrs.curwarn_len = 32;
+	mplrs.finalwarn[0] = '\0';
+	mplrs.curwarn[0] = '\0';
 	mplrs.maxbuf = DEF_MAXBUF; /* maximum # lines to buffer */
 	mplrs.outputblock = 0; /* don't block initial output */
+	mplrs.redund = 0;
 	mplrs.countonly = 0;
 
 	master.cobasis_list = NULL;
@@ -319,14 +469,17 @@ void mplrs_initstrucs(void)
 	master.num_producers = 0;
 	master.checkpointing = 0;
 	master.cleanstop = 0;
+	master.messages = 1;
 	master.lmin = DEF_LMIN;
 	master.lmax = DEF_LMAX;
+	master.orig_lmax = 1;
 	master.scalec = DEF_SCALEC;
 	master.initdepth = DEF_ID;
 	master.maxdepth = DEF_MAXD;
 	master.maxcobases = DEF_MAXC;
 	master.maxncob = DEF_MAXNCOB;
 	master.lponly = 0;
+	master.redund = 0;
 	master.time_limit = 0;
 	master.hist_filename = DEF_HIST;
 	master.hist = NULL;
@@ -348,8 +501,9 @@ void mplrs_initstrucs(void)
 	consumer.output = stdout;
 	consumer.oflow_flag = 0;
 	consumer.num_producers = 0;
-	consumer.waiting_initial = 1;
+	consumer.waiting_initial = 2; /* 2: waiting initial and master warnings */
 	consumer.final_print = 1;
+	consumer.final_redundcheck = 0;
 }
 
 /* process commandline arguments */
@@ -376,6 +530,7 @@ void mplrs_commandline(int argc, char **argv)
 			if (arg<1 )
 				bad_args();
 			master.lmax = arg;
+			master.orig_lmax = 0;
                         if (master.lmin > master.lmax)
                            master.lmin = arg;
 			continue;
@@ -462,6 +617,11 @@ void mplrs_commandline(int argc, char **argv)
 			master.lponly = 1;
 			continue;
 		}
+		else if (!strcmp(argv[i], "-redund"))
+		{
+			master.redund = 1;
+			continue;
+		}
 		else if (!strcmp(argv[i], "-stop"))
 		{
 			master.stop_filename = argv[i+1];
@@ -502,7 +662,7 @@ void mplrs_commandline(int argc, char **argv)
 		else
 			bad_args();
 	}
-	if (master.lmax == -1)
+	if (master.orig_lmax) /* default lmax behavior is lmax=lmin */
 		master.lmax = (master.lmin>0? master.lmin: 0);
 	if (mplrs.input_filename==NULL) /* need an input file */
 		bad_args();
@@ -593,12 +753,20 @@ void mplrs_initfiles(void)
 	}
 }
 
+/* free the lrs_mp allocated in mplrs_init */
+void mplrs_freemps(void)
+{
+	lrs_clear_mp(mplrs.tN); lrs_clear_mp(mplrs.tD);
+	lrs_clear_mp(mplrs.Vnum); lrs_clear_mp(mplrs.Vden);
+	lrs_clear_mp(mplrs.Tnum); lrs_clear_mp(mplrs.Tden);
+}
 
 /* Bad commandline arguments. Complain and die. */
 void bad_args(void)
 {
 	if (mplrs.rank == CONSUMER)
 		printf("Invalid arguments.\n%s\n", USAGE);
+	mplrs_freemps();
 	MPI_Finalize();
 	exit(0);
 }
@@ -610,6 +778,7 @@ int mplrs_fallback(void)
 {
 	if (mplrs.rank==0)
 		printf("mplrs requires at least 3 processes.\n");
+	mplrs_freemps();
 	MPI_Finalize();
 	exit(0);
 	return 0; /* unreachable */
@@ -636,13 +805,13 @@ int mplrs_master(void)
 	gettimeofday(&last, NULL);
 
 	master.num_producers = 0; /* nobody working right now */
-	master.act_producers = (unsigned int *)malloc(sizeof(unsigned int)*mplrs.size);
+	master.act_producers = malloc(sizeof(unsigned int)*mplrs.size);
 	master.live_workers = mplrs.size - 2;
-	master.workin = (int *)malloc(sizeof(int)*mplrs.size);
-	master.mworkers = (MPI_Request *)malloc(sizeof(MPI_Request)*mplrs.size);
+	master.workin = malloc(sizeof(int)*mplrs.size);
+	master.mworkers = malloc(sizeof(MPI_Request)*mplrs.size);
 	master.incoming = NULL;
-	master.sigbuf = (float*)malloc(sizeof(float)*mplrs.size);
-	master.sigcheck = (MPI_Request *)malloc(sizeof(MPI_Request)*mplrs.size);
+	master.sigbuf = malloc(sizeof(float)*mplrs.size);
+	master.sigcheck = malloc(sizeof(MPI_Request)*mplrs.size);
 
 	if (master.restart!=NULL)
 	{
@@ -663,6 +832,11 @@ int mplrs_master(void)
 			  master.mworkers+i);
 	}
 
+	if (mplrs.abortinit)
+	{
+		want_stop = 1;
+		master_stop_consumer(0);
+	}
 	while ((master.cobasis_list!=NULL && !master.checkpointing && !want_stop) || master.num_producers>0 || master.live_workers>0)
 	{
 		loopiter++;
@@ -675,7 +849,8 @@ int mplrs_master(void)
 				print_histogram(&cur, &last);
 		}
 		/* sometimes check if we should checkpoint */
-		if (!(loopiter&0x7ff))
+		/* don't check in phase 1 to ensure the consumer sees a 'begin' and exits */
+		if (!(loopiter&0x7ff) && phase!=1)
  // && !master.checkpointing && !master.cleanstop)
 		{
 			if (master.stop_filename!=NULL || master.time_limit!=0)
@@ -686,6 +861,21 @@ int mplrs_master(void)
 		}
 			
 		recv_producer_lists();
+
+		if (master.redund && phase==1) /* send out redund jobs */
+		{
+			for (i=0; i<=master.max_redundworker; i++)
+			{
+				if (i==CONSUMER || i==MASTER)
+					continue;
+				MPI_Wait(master.mworkers+i, MPI_STATUS_IGNORE);
+				send_work(i,phase);
+				MPI_Irecv(master.workin+i, 1, MPI_UNSIGNED,i, 6,
+					  MPI_COMM_WORLD, master.mworkers+i);
+			}
+			phase = 0;
+			master.tot_L = master.max_redundworker - 1;
+		}
 
 		/* check if anyone wants work */
 		for (i=0; i<mplrs.size; i++)
@@ -702,8 +892,11 @@ int mplrs_master(void)
 					*/
 			}
 
-			if (phase==1 && i!=INITIAL)
+			if (phase==1 && i!=INITIAL && master.cleanstop==0)
 				continue; /* INITIAL gets the first bit */
+					  /* need cleanstop condition for
+					   * overflows in mplrs_worker_init()
+					   */
 			MPI_Test(master.mworkers+i, &flag, MPI_STATUS_IGNORE);
 			if (!flag)
 				continue; /* i is not ready for more work */
@@ -749,6 +942,15 @@ int mplrs_master(void)
 		master_checkpoint();
 
 	send_master_stats();
+	mplrs_freemps();
+	if (master.freq != NULL)
+		fclose(master.freq);
+	if (master.hist != NULL)
+		fclose(master.hist);
+	if (master.checkp != NULL)
+		fclose(master.checkp);
+	free(mplrs.finalwarn);
+	free(mplrs.curwarn);
 	MPI_Finalize();
 	free(master.workin);
 	free(master.mworkers);
@@ -764,10 +966,10 @@ int mplrs_master(void)
  */
 void master_add_incoming(int target)
 {
-	msgbuf *msg = (msgbuf *)malloc(sizeof(msgbuf));
-	msg->req = (MPI_Request *)malloc(sizeof(MPI_Request)*3);
-	msg->buf = (void **)malloc(sizeof(void *)*3);
-	msg->buf[0] = (int *)malloc(sizeof(int) * 3); /* (strlen,lengths,tag) */
+	msgbuf *msg = malloc(sizeof(msgbuf));
+	msg->req = malloc(sizeof(MPI_Request)*3);
+	msg->buf = malloc(sizeof(void *)*3);
+	msg->buf[0] = malloc(sizeof(int) * 3); /* (strlen,lengths,tag) */
 	msg->buf[1] = NULL; /* sizes not known yet */
 	msg->buf[2] = NULL;
 	msg->count = 3;
@@ -819,8 +1021,8 @@ void recv_producer_lists(void)
 					master.incoming = next;
 				continue;
 			}
-			msg->buf[1]= (char*)malloc(sizeof(char)*header[1]);
-			msg->buf[2]= (int *)malloc(sizeof(int)*header[0]);
+			msg->buf[1]= malloc(sizeof(char)*header[1]);
+			msg->buf[2]= malloc(sizeof(int)*header[0]);
 			MPI_Irecv(msg->buf[1], header[1], MPI_CHAR, msg->target,
 				  header[2], MPI_COMM_WORLD, msg->req+1);
 			MPI_Irecv(msg->buf[2], header[0], MPI_INT, msg->target,
@@ -868,7 +1070,7 @@ void process_returned_cobases(msgbuf *msg)
 
 	for (i=0; i<header[0]; i++)
 	{
-		cob = (char *)malloc(sizeof(char)*(lengths[i]+1));
+		cob = malloc(sizeof(char)*(lengths[i]+1));
 		strncpy(cob, str, lengths[i]);
 		cob[lengths[i]] = '\0';
 		str+=lengths[i];
@@ -888,14 +1090,17 @@ void process_returned_cobases(msgbuf *msg)
 void send_work(int target, int phase)
 {
 	slist *cob;
-	msgbuf *msg = (msgbuf *)malloc(sizeof(msgbuf));
+	msgbuf *msg = malloc(sizeof(msgbuf));
 	int *header;
-	msg->req = (MPI_Request *)malloc(sizeof(MPI_Request)*2);
-	msg->buf = (void **)malloc(sizeof(void *)*2);
+	msg->req = malloc(sizeof(MPI_Request)*2);
+	msg->buf = malloc(sizeof(void *)*2);
 	/*{length of work string, int maxdepth, int maxcobases, bool lponly,
-	   4x future use} */
-	msg->buf[0] = (int *)malloc(sizeof(int) * 8);
+	   bool messages, 3x future use} */
+	msg->buf[0] = malloc(sizeof(int) * 8);
 	header = (int *)msg->buf[0];
+
+	header[4] = master.messages;
+	master.messages = 0;
 
 	if (phase==0)	/* normal */
 	{
@@ -918,6 +1123,8 @@ void send_work(int target, int phase)
 		header[0] = 0; /* header[0]==0 means initial phase 1 */
 		header[1] = master.initdepth;
 		header[2] = master.maxcobases;
+		if (master.redund) /* redund turns off budget */
+			header[1] = header[2] = 0;
 		mprintf(("M: Sending phase 1 to %d (%d,%d)\n", target,
 			 header[1], header[2]));
 		msg->buf[1] = NULL;
@@ -945,7 +1152,7 @@ void send_work(int target, int phase)
 	return;
 }
 
-/* header is a work header (length, maxd, maxc) not yet set. 
+/* header is a work header (length, maxd, maxc) not yet set.
  * Set the parameters (maxd, maxc) as desired.
  */
 void setparams(int *header)
@@ -999,6 +1206,17 @@ void check_stop(void)
 	}
 }
 
+void master_stop_consumer(int already_stopping)
+{
+	MPI_Request ign;
+	int check[3] = {STOPFLAG,0,0};
+	mprintf2(("M: telling consumer to stop, already_stopping:%d checkpointing:%d\n", already_stopping, master.checkpointing));
+	if (!already_stopping)
+		MPI_Isend(check, 3, MPI_INT, CONSUMER, 7,
+			  MPI_COMM_WORLD, &ign);
+	master.cleanstop = 1;
+}
+
 /* check if we've caught a signal, or we've received a message from someone
  * that has.  If so, we want to checkpoint like above
  * The similar mplrs_cleanstop also uses this...
@@ -1006,7 +1224,6 @@ void check_stop(void)
 void master_checksigs(void)
 {
 	int i, flag, size=mplrs.size;
-	int check[3] = {CHECKFLAG,0,0};
 	float junk=0;
 	MPI_Request ign;
 	int already_stopping = master.checkpointing || master.cleanstop;
@@ -1022,6 +1239,9 @@ void master_checksigs(void)
 	for (i=1; i<size; i++)
 	{
 		MPI_Test(master.sigcheck+i, &flag, MPI_STATUS_IGNORE);
+		if (flag)
+			MPI_Irecv(master.sigbuf+i, 1, MPI_FLOAT, i, 9, MPI_COMM_WORLD,
+                          master.sigcheck+i);
 		if (flag && master.sigbuf[i]==0 && !already_stopping)
 		{
 			mprintf(("M: %d caught signal, checkpointing!\n",i));
@@ -1037,12 +1257,8 @@ void master_checksigs(void)
 			/* still needed, to tell consumer if overflow occurs
 			 * in initial job
 			 */
-			check[0] = STOPFLAG;
+			master_stop_consumer(already_stopping);
 			MPI_Isend(&junk, 1, MPI_FLOAT, i,9,MPI_COMM_WORLD,&ign);
-			if (!already_stopping)
-				MPI_Isend(check, 3, MPI_INT, CONSUMER, 7, 
-					  MPI_COMM_WORLD, &ign);
-			master.cleanstop = 1;
 			already_stopping = 1;
 			/* disable a checkpoint in case we notice overflow
 			 * after deciding to checkpoint but before workers
@@ -1138,7 +1354,7 @@ void master_checkpointfile(void)
 		free(list);
 		master.size_L--;
 	}
-	fclose(master.checkp);
+	/* fclose(master.checkp); */ /* not here */
 	return;
 }
 
@@ -1182,10 +1398,15 @@ void master_restart(void)
 			exit(0);
 		}
 		vol[len-1] = '\0'; /* remove '\n' */
+#if defined(MA) || defined(GMP) || defined(FLINT)
 		plrs_readrat(mplrs.Tnum, mplrs.Tden, vol);
 		copy(mplrs.tN, mplrs.Vnum); copy(mplrs.tD, mplrs.Vden);
 		linrat(mplrs.tN, mplrs.tD, 1L, mplrs.Tnum, mplrs.Tden,
 		       1L, mplrs.Vnum, mplrs.Vden);
+#else
+		if (strcmp(vol,"0"))
+			printf("*Checkpoint volume ignored, use gmp or hybrid mplrs\n");
+#endif
 		free(vol);
 	}
 	if (ver<4) /* tree depth added in mplrs4 */
@@ -1268,6 +1489,9 @@ int mplrs_worker(void)
 	int len;
 	int flag;
 
+	if (!mplrs.abortinit) /* didn't receive file if parsing failed */
+		mplrs_worker_init();
+	
 	while (1)
 	{
 		ncob = mplrs.bases - tot_ncob; /* #cobases in last job */
@@ -1300,7 +1524,7 @@ int mplrs_worker(void)
 
 		if (len>0)
 		{
-			starting_cobasis = (char*)malloc(sizeof(char)*(len+1));
+			starting_cobasis = malloc(sizeof(char)*(len+1));
 			MPI_Recv(starting_cobasis, len, MPI_CHAR, MASTER,
 			 	 MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			starting_cobasis[len] = '\0';
@@ -1314,6 +1538,7 @@ int mplrs_worker(void)
 		/* send output and unfinished cobases */
 		mplrs.outputblock = 0; /* enable maxbuf-based flushing */
 		process_output();
+		process_curwarn();
 		return_unfinished_cobases();
 
 		clean_outgoing_buffers(); /* check buffered sends, 
@@ -1321,6 +1546,156 @@ int mplrs_worker(void)
 					   */
 	}
 	return 0; /* unreachable */
+}
+
+/* run lrs_main.
+ * easy in the non-hybrid case.  in the hybrid case, runs the appropriate one,
+ * cleaning up and proceeding to the next arithmetic package as needed until
+ * finishing the run.
+ * for now only use with stage != 0, TODO: handle init run too
+ * header, starting_cobasis only used if header non-NULL
+ */
+void run_lrs(int argc, char **argv, long o, long stage,
+	     const int *header, char *starting_cobasis)
+{
+
+	long ret = 1;
+#ifndef MA
+	if (mplrs.overflow != 3)
+		ret = mplrs.lrs_main(argc, argv, &mplrs.P, &mplrs.Q, o, stage,
+				   NULL, mplrs.R);
+	if (ret == 1 || (ret==2 && mplrs.redund))
+	{
+		mplrs.overflow = 3;
+		worker_report_overflow();
+	}
+	return;
+#else /* hybrid */
+	while ((ret == 1) || (ret==2 && mplrs.redund))	/* overflow */
+	{
+		ret =  mplrs.lrs_main(argc, argv, &mplrs.P, &mplrs.Q, o, stage,
+				    NULL, mplrs.R);
+		mprintf3(("%d: lrs_main returned %ld (overflow status %d)\n",
+			  mplrs.rank, ret, mplrs.overflow));
+		if (ret == 0) /* done */
+			break;
+
+		if (stage!=0)
+			overflow_cleanup();
+		mprintf2(("%d: overflow in run_lrs, trying next\n",
+			  mplrs.rank));
+#ifdef B128
+		if (mplrs.lrs_main == lrs1_main)
+		{
+			mplrs.overflow = 1;
+			mplrs.lrs_main = lrs2_main;
+			mplrs_worker_init(); /* re-init */
+			if (header!=NULL)
+				set_restart(header, starting_cobasis);
+			if (consumer.final_redundcheck)
+				consumer_setredineq();
+			continue;
+		}
+#endif
+		mplrs.overflow = 2;
+		mplrs.lrs_main = lrsgmp_main;
+		mplrs_worker_init(); /* re-init */
+		if (header != NULL)
+			set_restart(header, starting_cobasis);
+		if (consumer.final_redundcheck)
+			consumer_setredineq();
+		continue;
+	}
+	mprintf2(("%d: lrs_main finished, package status %d\n",
+		  mplrs.rank, mplrs.overflow));	
+	return;
+#endif
+}
+
+
+void mplrs_worker_init(void)
+{
+	char *argv[] = {argv0, mplrs.tfn};
+	long o = 1;
+
+	if ((mplrs.rank == MASTER && master.redund) || (mplrs.rank == CONSUMER && mplrs.redund))
+		argv[0] = "redund"; /* hack for -redund */
+
+	if (mplrs.R != NULL)
+	{  /* overflow happened, free and re-init */
+		free(mplrs.R->redineq);
+		free(mplrs.R->facet);
+		free(mplrs.R);
+	}
+
+	mplrs.R = lrs_alloc_restart();
+	mprintf2(("%d: calling lrs_main to setup P & Q\n", mplrs.rank));
+
+/* temp hack to test message requests */
+/* initialization done on the master to get the full redund line.
+ * stage=1 done on INITIAL because the master never does stage=1
+ */
+/* note we must be careful about returns below in order to fix this
+ * up on MASTER and INITIAL
+ */
+        if(mplrs.rank == MASTER)
+           mplrs.R->messages=1;
+        else
+           mplrs.R->messages=0;
+
+	if (mplrs.rank != MASTER)
+	{
+		mplrs.tfile = fopen(mplrs.tfn, "w");
+		fprintf(mplrs.tfile, "%s", mplrs.input);
+		fclose(mplrs.tfile);
+	}
+
+	while (o != 0)
+	{
+		o = mplrs.lrs_main(2,argv,&mplrs.P,&mplrs.Q,0,0,NULL,mplrs.R);
+		if (o == -1)
+		{
+			mprintf(("%d: failed lrs setup, want to exit\n",
+				 mplrs.rank));
+			mplrs.abortinit = 1;
+			break;
+		}
+		if (o == 1)
+		{
+#ifdef MA
+			mprintf2(("%d: overflow in init, trying next arithmetic\n", mplrs.rank));
+			overflow_cleanup(); /* 2020.6.1 : avoid multiple
+				  warnings etc when master overflows in setup */
+#ifdef B128 /* hybrid with B128 */
+			if (mplrs.lrs_main == lrs1_main)
+			{
+				mplrs.lrs_main = lrs2_main;
+				mplrs.overflow = 1;
+			}
+			else
+			{
+				mplrs.lrs_main = lrsgmp_main;
+				mplrs.overflow = 2;
+			}
+#else /* hybrid but no B128 */
+			mplrs.lrs_main = lrsgmp_main;
+			mplrs.overflow = 2;
+#endif
+#else /* not hybrid, stop on overflow */
+			mprintf(("%d: overflow in init, fatal\n", mplrs.rank));
+			worker_report_overflow();
+			mplrs.overflow = 3; /* fatal overflow */
+			break;
+#endif
+		}
+	}
+			
+	mprintf3(("%d: lrs_main setup finished (%ld)\n", mplrs.rank, o));
+	mplrs.R->facet = calloc(mplrs.R->d+1, sizeof(long));
+	if (mplrs.rank != MASTER)
+		remove(mplrs.tfn);
+	mplrs.R->overide = 1;
+	process_curwarn();
 }
 
 /* This worker has finished.  Tell the consumer, send counting stats
@@ -1338,6 +1713,24 @@ int mplrs_worker_finished(void)
 	}
 	MPI_Send(&done, 3, MPI_INT, CONSUMER, 7, MPI_COMM_WORLD);
 	send_counting_stats(CONSUMER);
+
+	/* free P & Q */
+	/* overflows free themselves in lrslib?  abortinit didn't allocate */
+	if (mplrs.overflow != 3 && !mplrs.abortinit)
+	{
+		mplrs.lrs_main(0,NULL,&mplrs.P,&mplrs.Q,0,2,NULL,mplrs.R);
+	}
+	if (mplrs.R != NULL)
+	{
+		free(mplrs.R->redineq);
+		free(mplrs.R->facet);
+		free(mplrs.R);
+	}
+	free(mplrs.tfn);
+	free(mplrs.input);
+	mplrs_freemps();
+	free(mplrs.finalwarn);
+	free(mplrs.curwarn);
 	MPI_Finalize();
 	return 0;
 }	
@@ -1399,28 +1792,35 @@ void overflow_cleanup(void)
 		free(list);
 	}
 	mplrs.cobasis_list = NULL;
+	/* discard curwarn */
+	mplrs.curwarn[0] = '\0';
 }
 
-/* write the worker's temporary file */
+/* set up restart parameters in mplrs.R */
 /* header[1] gives maxdepth, header[2] gives maxcobases,
  * if header[0] > 0, 
  *     starting_cobasis gives the starting cobasis.
  * if header[0] == 0, starting at initial input (phase 1)
+ * header[4] gives desired bool for R->messages
  */
-void write_workfile(const int *header, char *starting_cobasis)
+void set_restart(const int *header, char *starting_cobasis)
 {
-	int i, len;
+	lrs_restart_dat *R = mplrs.R;
+	int i, j, len;
 	long depth = 0; /* if restarting from earlier checkpoint,
 			 * then we want to fall back to old depth-0
 			 * behavior */
 	/* prepare input file */
 	mplrs.initializing = 0;
-	mplrs.tfile = fopen(mplrs.tfn, "w");
-	fprintf(mplrs.tfile, "%s", mplrs.input);
+
+	/* reset counts */
+	for (i=0; i<10; i++)
+		R->count[i] = 0;
+	R->messages = header[4];
 
 	if (header[0]>0)
 	{
-		/* ugly: recover depth after '!' marker process_cobasis adds */
+		/* ugly: recover depth after '!' marker */
 		len = strlen(starting_cobasis);
 		for (i=0; i<len-1; i++)
 			if (starting_cobasis[i]=='!')
@@ -1431,100 +1831,105 @@ void write_workfile(const int *header, char *starting_cobasis)
 			}
 		mprintf3(("%d: depth %ld in %s\n", mplrs.rank, depth,
 			  starting_cobasis));
-		fprintf(mplrs.tfile, "\nmindepth %ld\nrestart %s\n", depth,
-				     starting_cobasis);
+		R->depth = depth;
+		R->mindepth = depth;
+		R->restart = 1;
 		if (i<len-1) /* reset in case redo because of overflow */
 			starting_cobasis[i] = '!';
+		/* 2018.4.28 recover restart line */
+		/* TODO: should be sent as longs, no more need for string */
+		mprintf3(("%d: facets \"", mplrs.rank));
+		for (; i<len && starting_cobasis[i]!=' '; i++);
+		for (; i<len && starting_cobasis[i]==' '; i++);
+		for (j=0; j<R->d; j++)
+		{
+			if (i<len)
+				R->facet[j] = atol(starting_cobasis+i);
+			else
+				R->facet[j] = 0;
+			mprintf3(("%ld ", R->facet[j]));
+			for (; i<len && starting_cobasis[i]!=' '; i++);
+			i++;
+		}
+		mprintf3(("\" from %s\n", starting_cobasis));
 	}
 	else
+	{
 		mplrs.initializing = 1; /* phase 1 output handled different */
+		R->count[2] = 1; /* why? to get begin line... */
+		R->depth = 0;
+		R->restart = 0;
+	}
 
 	if (header[1]>0)
-		fprintf(mplrs.tfile, "\nmaxdepth %ld\n", header[1] + depth);
+		R->maxdepth = header[1] + depth;
 	if (header[2]>0)
-		fprintf(mplrs.tfile, "\nmaxcobases %d\n", header[2]);
-
-	if (mplrs.countonly == 1)
-		fprintf(mplrs.tfile, "countonly\n");
-
+		R->maxcobases = header[2];
+#if 0
+/* 2018.4.28 TODO lponly ? countonly now set on master */
 	if (mplrs.initializing != 1 && header[3]==1) /* lponly option, only in*/
 		fprintf(mplrs.tfile, "lponly\n");    /* non-initial jobs
 						      */
-		
-	fclose(mplrs.tfile);
+#endif
+
 	return;
+}
+
+/* update counts in mplrs.rays, etc via mplrs.R */
+/* see lrsrestart.h */
+void update_counts(void)
+{
+	lrs_restart_dat *R = mplrs.R;
+	int hull = R->count[5];
+	long deepest = mplrs.deepest; /* silly, avoid sign comparison warning */
+	long linearities = mplrs.linearities; /* silly, avoid warning */
+	if (!hull)
+		mplrs.rays += R->count[0];
+	else
+		mplrs.facets += R->count[0];
+	if (!hull)
+		mplrs.vertices += R->count[1];
+	mplrs.bases += R->count[2];
+	mplrs.intvertices += R->count[4];
+	if (linearities < R->count[6])
+		mplrs.linearities = R->count[6];
+	if (deepest < R->count[7])
+		mplrs.deepest = R->count[7];
 }
 
 /* header[1] gives maxdepth, header[2] gives maxcobases,
  * if header[0] > 0, 
  *     starting_cobasis gives the starting cobasis.
  * if header[0] == 0, starting at initial input (phase 1)
+ * header[4] gives desired bool for R->messages
  */
 void do_work(const int *header, char *starting_cobasis)
 {
-	char *argv[] = {"mplrs-internal", mplrs.tfn};
-	int ret = 0;
-	float junk;
+	char *argv[] = {argv0, mplrs.tfn};
 
 	mprintf3(("%d: Received work (%d,%d,%d)\n",mplrs.rank,header[0],
 						   header[1],header[2]));
-	write_workfile(header, starting_cobasis);
-	mprintf2(("%d: Calling lrs_main\n",mplrs.rank));
-#ifdef MA
-	if (mplrs.overflow == 0)
-		ret = lrs1_main(2, argv, 0, NULL);
-	if (mplrs.overflow == 1 || ret == 1) /* lrs1_main overflowed */
-	{
-		if (ret == 1)
-		{
-			/*this message is not desired */
-			/*send_output(2, dupstr("*changing arithmetic package due to possible overflow: duplicate output possible\n"));*/
-			mplrs.overflow = 1;
-			overflow_cleanup();
-			remove(mplrs.tfn); /* redo file in case removed */
-			write_workfile(header, starting_cobasis);
-		}
-#ifdef B128
-		ret = lrs2_main(2, argv, 0, NULL);
-#else
-		ret = lrsgmp_main(2, argv, 0, NULL);
-#endif
+	set_restart(header, starting_cobasis);
+	mprintf2(("%d: Calling run_lrs\n",mplrs.rank));
+	run_lrs(2, argv, 0, 1, header, starting_cobasis);
+	mprintf2(("%d: run_lrs returned, updating counts\n",mplrs.rank)); 
+	update_counts();
+}
+
+/* lrs reported overflow; tell the master and prepare to finish */
+void worker_report_overflow(void)
+{
+	float junk = -1;
+	mprintf(("%d: reporting overflow\n", mplrs.rank));
+	if (mplrs.rank == MASTER)
+	{ /* possible now since master does worker_init to get m and redund options */
+		mplrs.overflow = 3;
+		return;
 	}
-	if (mplrs.overflow == 2 || ret == 1) /* lrs2_main overflowed */
-	{
-		if (ret == 1)
-		{
-			mplrs.overflow = 2;
-			overflow_cleanup();
-			remove(mplrs.tfn); /* redo file in case removed */
-			write_workfile(header, starting_cobasis);
-		}
-		ret = lrsgmp_main(2, argv, 0, NULL);
-	}
-#else
-#if defined(GMP)
-	ret = lrsgmp_main(2, argv, 0, NULL);
-#elif defined(FLINT)
-	ret = lrs_main(2, argv);
-#elif defined(LRSLONG)
-#ifdef B128
-	ret = lrs2_main(2, argv, 0, NULL);
-#else
-	ret = lrs1_main(2, argv, 0, NULL);
-#endif
-#endif
-	if (ret == 1)
-	{
-		junk = -1;
-		send_output(2, dupstr("*possible overflow: try using gmp or hybrid mplrs\n"));
-		/* inform master, wait for reply */
-		MPI_Send(&junk, 1, MPI_FLOAT, MASTER, 9, MPI_COMM_WORLD);
-		MPI_Recv(&junk, 1, MPI_FLOAT,MASTER,9,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-	}
-#endif
-	mprintf2(("%d: lrs_main returned\n",mplrs.rank)); 
-	if (remove(mplrs.tfn) != 0) /* UNsynchronized printf -- should fix */
-		printf("Error deleting thread file!\n");
+	send_output(2, dupstr("*possible overflow: try using gmp or hybrid mplrs\n"));
+	/* inform master, wait for reply */
+	MPI_Send(&junk, 1, MPI_FLOAT, MASTER, 9, MPI_COMM_WORLD);
+	MPI_Recv(&junk, 1, MPI_FLOAT,MASTER,9,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 }
 
 /* The worker has finished its work.  Process the output, preparing
@@ -1536,19 +1941,23 @@ void process_output(void)
 	outlist *out = mplrs.output_list, *next;
 	char *out_string=NULL; /* for output file if exists */
 	char *serr_string=NULL; /* for stdout */
-	const char *type; /* because plrs_output is C++ at the moment */
-	const char *data; /* because plrs_output is C++ at the moment */
+	char *redund_string=NULL; /* for redund */
+	const char *type;
+	const char *data;
 	int len = 1024;
 	int len2 = 256;
+	int len3 = 256;
 
 	mplrs.outnum = 0; /* clearing buffer */
 	mplrs.output_list = NULL;
 	mplrs.ol_tail = NULL;
 
-	out_string = (char *)malloc(sizeof(char)*len);
+	out_string = malloc(sizeof(char)*len);
 	out_string[0]='\0';
-	serr_string = (char *)malloc(sizeof(char)*len);
+	serr_string = malloc(sizeof(char)*len2);
 	serr_string[0]='\0';
+	redund_string = malloc(sizeof(char)*len3);
+	redund_string[0]='\0';
 
 	/* reverse when initializing to get correct order */
 #if 0 /* TODO fixme */
@@ -1564,38 +1973,40 @@ void process_output(void)
 			out_string = append_out(out_string, &len, data);
 		else if (!strcmp(type, "ray"))
 			out_string = append_out(out_string, &len, data);
-		else if (!strcmp(type, "unexp"))
+		else if (!strcmp(type, "unexp")) /* no longer used */
 			process_cobasis(data);
 		else if (!strcmp(type, "cobasis"))
 			out_string = append_out(out_string, &len, data);
 		else if (!strcmp(type, "V cobasis"))
 			out_string = append_out(out_string, &len, data);
-		else if (!strcmp(type, "facet count"))
+		else if (!strcmp(type, "facet count")) /* no longer used */
 			mplrs.facets += atoi(data);
-		else if (!strcmp(type, "ray count"))
+		else if (!strcmp(type, "ray count")) /* no longer used */
 			mplrs.rays += atoi(data);
-		else if (!strcmp(type, "basis count"))
+		else if (!strcmp(type, "basis count")) /* no longer used */
 			mplrs.bases += atoi(data);
-		else if (!strcmp(type, "vertex count"))
+		else if (!strcmp(type, "vertex count")) /* no longer used */
 			mplrs.vertices += atoi(data);
-		else if (!strcmp(type, "integer vertex count"))
+		else if (!strcmp(type, "integer vertex count")) /* no longer used */
 			mplrs.intvertices += atoi(data);
-		else if (!strcmp(type, "tree depth"))
+		else if (!strcmp(type, "tree depth")) /* no longer used */
 		{
-			if (mplrs.deepest < atol(data))
-				mplrs.deepest = atol(data);
+			if (mplrs.deepest < strtoul(data,NULL,10))
+				mplrs.deepest = strtoul(data,NULL,10);
 		}
-		else if (!strcmp(type, "linearities"))
+		else if (!strcmp(type, "linearities")) /* no longer used */
 		{
-			if (mplrs.linearities < atol(data))
-				mplrs.linearities = atol(data);
+			if (mplrs.linearities < strtoul(data,NULL,10))
+				mplrs.linearities = strtoul(data,NULL,10);
 		}
-		else if (!strcmp(type, "volume"))
+		else if (!strcmp(type, "volume")) /* still used */
 		{
+#if defined(MA) || defined(GMP) || defined(FLINT)
 			plrs_readrat(mplrs.Tnum, mplrs.Tden, data);
 			copy(mplrs.tN, mplrs.Vnum); copy(mplrs.tD, mplrs.Vden);
 			linrat(mplrs.tN, mplrs.tD, 1L, mplrs.Tnum, mplrs.Tden,
 			       1L, mplrs.Vnum, mplrs.Vden);
+#endif
 		}
 		else if (!strcmp(type, "options warning"))
 		{
@@ -1609,15 +2020,29 @@ void process_output(void)
 			if (mplrs.initializing)
 				out_string = append_out(out_string, &len, data);
 		}
+		else if(!strcmp(type, "redund"))
+		{
+			/* handle redund inequalities: TODO better */
+			redund_string = append_out(redund_string, &len3, data);
+		}
 		else if (!strcmp(type, "debug"))
 		{
 			out_string = append_out(out_string, &len, data);
 		}
 		else if (!strcmp(type, "warning"))
-		{ /* warnings always go to stderr */
+		{ /* warnings always go to output file and stderr if output is not stdout */
+                        out_string = append_out(out_string, &len, data);
+                        if(consumer.output != stdout)
+			   serr_string = append_out(serr_string, &len2, data);
+		}
+		else if (!strcmp(type, "finalwarn"))
+		{ /* these are printed at end of run */
+			mplrs.curwarn = append_out(mplrs.curwarn, 
+					     &mplrs.curwarn_len,
+					     data);
+			/* but also to stderr now */
 			serr_string = append_out(serr_string, &len2, data);
 		}
-
 		next = out->next;
 		free(out->type);
 		free(out->data);
@@ -1633,12 +2058,31 @@ void process_output(void)
 		send_output(0, serr_string);
 	else
 		free(serr_string);
+	if (strlen(redund_string)>0 && strcmp(redund_string, "\n"))
+		send_output(3, redund_string);
+	else
+		free(redund_string);
 }
+
+/* if we've produced anything for finalwarn, add it to finalwarn now.
+ * buffered in curwarn to clear on overflow, avoiding multiple copies
+ */
+void process_curwarn(void)
+{
+	if (strlen(mplrs.curwarn)>0)
+	{
+		mplrs.finalwarn = append_out(mplrs.finalwarn,
+					    &mplrs.finalwarn_len,mplrs.curwarn);
+		mplrs.curwarn[0] = '\0';
+	}
+}
+
 
 /* send this string to the consumer to output.
  * If dest==1, then it goes to the output file (stdout if no output file).
  * If dest==0, then it goes to stderr.
  * If dest==2, it's an overflow message: only the first one printed (stderr)
+ * If dest==3, it's a redund output: consumer handles specially
  *
  * The pointer str is surrendered to send_output and should not be changed
  * It will be freed once the send is complete.
@@ -1646,8 +2090,8 @@ void process_output(void)
 /* str should not be NULL */
 void send_output(int dest, char *str)
 {
-	msgbuf *msg = (msgbuf *)malloc(sizeof(msgbuf));
-	int *header = (int *)malloc(sizeof(int)*3);
+	msgbuf *msg = malloc(sizeof(msgbuf));
+	int *header = malloc(sizeof(int)*3);
 
 	header[0] = dest;
 	header[1] = strlen(str);
@@ -1655,17 +2099,17 @@ void send_output(int dest, char *str)
 				   * remains intact even if another
 				   * send happens in between
 				   */
-	msg->req = (MPI_Request *)malloc(sizeof(MPI_Request)*2);
-	msg->buf = (void **)malloc(sizeof(void *)*2);
+	msg->req = malloc(sizeof(MPI_Request)*2);
+	msg->buf = malloc(sizeof(void *)*2);
 	msg->buf[0] = header;
 	msg->buf[1] = str;
 	msg->count = 2;
 	msg->target = CONSUMER;
 	msg->queue = 1;
 
-	msg->tags = (int *)malloc(sizeof(int)*2);
-	msg->sizes = (int *)malloc(sizeof(int)*2);
-	msg->types = (MPI_Datatype *)malloc(sizeof(MPI_Datatype)*2);
+	msg->tags = malloc(sizeof(int)*2);
+	msg->sizes = malloc(sizeof(int)*2);
+	msg->types = malloc(sizeof(MPI_Datatype)*2);
 
 	msg->types[1] = MPI_CHAR;
 	msg->sizes[1] = header[1]+1;
@@ -1680,6 +2124,39 @@ void send_output(int dest, char *str)
 		  msg->req);
 }
 
+/* lrs returned this unexplored cobasis - send it along.
+ * For now converts to a string and re-uses the old code,
+ * but avoids horrible process_cobasis(). TODO: send along as
+ * longs instead.
+ */
+void post_R(lrs_restart_dat *cob)
+{
+	int i=0, offs=0;
+	int arg = 0;
+	int hull = cob->count[5];
+	char *newcob = NULL;
+
+	while (arg == 0)
+	{
+		arg = offs;
+		if (hull == 0)
+			offs = snprintf(newcob,arg," %ld %ld %ld!%ld ",
+					cob->count[1],cob->count[0],
+					cob->count[2],cob->depth);
+		else
+			offs = snprintf(newcob,arg," %ld %ld!%ld ",
+					cob->count[1],cob->count[2],
+					cob->depth);
+		for (i=0; i<cob->d; i++)
+			offs += snprintf(newcob+offs,arg,"%ld ", cob->facet[i]);
+		if (newcob == NULL)
+			newcob = malloc(sizeof(char)*(offs+1));
+	}
+
+	mplrs.cobasis_list = addlist(mplrs.cobasis_list, newcob);
+}
+
+/* process_cobasis is no longer used */
 /* called from process_output to handle a 'cobasis',
  * add to queue to return to master
  */
@@ -1697,7 +2174,7 @@ void send_output(int dest, char *str)
 void process_cobasis(const char *newcob)
 {
 	int nlen = strlen(newcob);
-	char *buf = (char *)malloc(sizeof(char) * (nlen+1));
+	char *buf = malloc(sizeof(char) * (nlen+1));
 	int i,j,k;
 	int num_spaces=0; /* we count the number of spaces */
 	char ignore_chars[] = "#VRBh=facetsFvertices/rays";
@@ -1755,9 +2232,9 @@ void process_cobasis(const char *newcob)
 	mplrs.cobasis_list = addlist(mplrs.cobasis_list, buf);
 }
 
-inline slist *addlist(slist *list, void *buf)
+slist *addlist(slist *list, void *buf)
 {
-	slist *n = (slist *)malloc(sizeof(struct slist));
+	slist *n = malloc(sizeof(struct slist));
 	n->data = buf;
 	n->next = list;
 	return n;
@@ -1776,8 +2253,8 @@ void return_unfinished_cobases(void)
 	int i;
 	int start;
 	/* header is (strlen(cobases), length of lengths, mplrs.my_tag) */
-	int *header = (int *)malloc(sizeof(int)*3);
-	msgbuf *msg = (msgbuf *)malloc(sizeof(msgbuf));
+	int *header = malloc(sizeof(int)*3);
+	msgbuf *msg = malloc(sizeof(msgbuf));
 	msg->target = MASTER;
 
 	for (listsize=0, list=mplrs.cobasis_list; list; list=list->next)
@@ -1791,10 +2268,10 @@ void return_unfinished_cobases(void)
 		header[0] = -1;
 		header[1] = -1;
 		header[2] = -1;
-		msg->buf = (void **)malloc(sizeof(void *));
+		msg->buf = malloc(sizeof(void *));
 		msg->buf[0] = header;
 		msg->count = 1;
-		msg->req = (MPI_Request *)malloc(sizeof(MPI_Request));
+		msg->req = malloc(sizeof(MPI_Request));
 		msg->queue = 0;
 		msg->tags = NULL;
 		msg->sizes = NULL;
@@ -1806,8 +2283,8 @@ void return_unfinished_cobases(void)
 		return;
 	}
 
-	lengths = (int *)malloc(sizeof(int)*listsize);  /*allows unconcatenate*/
-	cobases = (char *)malloc(sizeof(char)*(size+1));/*concatenated + 1 \0*/
+	lengths = malloc(sizeof(int)*listsize);  /*allows unconcatenate*/
+	cobases = malloc(sizeof(char)*(size+1));/*concatenated + 1 \0*/
 
 	for (start=0, i=0, list=mplrs.cobasis_list; list; list=next, i++)
 	{
@@ -1826,8 +2303,8 @@ void return_unfinished_cobases(void)
 	header[1] = size+1;
 	header[2] = mplrs.my_tag;
 
-	msg->req = (MPI_Request *)malloc(sizeof(MPI_Request) * 3);
-	msg->buf = (void **)malloc(sizeof(void *) * 3);
+	msg->req = malloc(sizeof(MPI_Request) * 3);
+	msg->buf = malloc(sizeof(void *) * 3);
 	msg->buf[0] = header;
 	msg->buf[1] = cobases;
 	msg->buf[2] = lengths;
@@ -1862,6 +2339,9 @@ char *append_out(char *dest, int *size, const char *src)
 	int newsize = *size;
 	char *newp = dest;
 
+	if (src[len2-1]=='\n') /* remove trailing \n, added below */
+		len2--;
+
 	if (len1 + len2 + 2 > *size)
 	{
 		newsize = newsize<<1;
@@ -1871,11 +2351,11 @@ char *append_out(char *dest, int *size, const char *src)
 		if (!newsize)
 			newsize = len1+len2+2;
 
-		newp = (char *)realloc(dest, sizeof(char) * newsize);
+		newp = realloc(dest, sizeof(char) * newsize);
 		if (!newp)
 		{
 			newsize = len1+len2+2;
-			newp = (char *)realloc(dest, sizeof(char) * newsize);
+			newp = realloc(dest, sizeof(char) * newsize);
 			if (!newp)
 			{
 				printf("%d: Error no memory (%d)\n",mplrs.rank,
@@ -1901,13 +2381,16 @@ int mplrs_consumer(void)
 {
 	int i;
 	int check = 0;
-
 	initial_print(); 	/* print version and other information */
 	/* initialize MPI_Requests and 3*int buffers for incoming messages */
-	consumer.prodreq = (MPI_Request*)malloc(sizeof(MPI_Request)*mplrs.size);
-	consumer.prodibf = (int *)malloc(sizeof(int)*3*mplrs.size);
+	consumer.prodreq = malloc(sizeof(MPI_Request)*mplrs.size);
+	consumer.prodibf = malloc(sizeof(int)*3*mplrs.size);
 	consumer.num_producers = mplrs.size - 2;
-	consumer.overflow = (int *)malloc(sizeof(int)*mplrs.size);
+	consumer.overflow = malloc(sizeof(int)*mplrs.size);
+
+	if (mplrs.redund) /* don't wait for a begin when doing redund */
+		consumer.waiting_initial = 0;
+
 	for (i=0; i<mplrs.size; i++)
 	{
 		consumer.overflow[i] = 0;
@@ -1923,6 +2406,9 @@ int mplrs_consumer(void)
 	while (consumer.num_producers>0 || consumer.incoming || 
 	       (consumer.waiting_initial && consumer.final_print))
 	{
+	/*printf("%d %d %d %d\n", consumer.num_producers, consumer.incoming,
+				consumer.waiting_initial, consumer.final_print);
+	 */
 		/* check if someone is trying to send us output */
 		/* if so, queue any incoming messages */
 		consumer_start_incoming();
@@ -1957,7 +2443,21 @@ int mplrs_consumer(void)
 	recv_master_stats(); /* gets stats on size of L, etc */
 	if (consumer.final_print)
 		final_print();
+	free(mplrs.input); /* must be after final_print, for redund check */
+	if (consumer.output!=stdout)
+		fclose(consumer.output);
 	free(consumer.overflow);
+	free(mplrs.tfn);
+	if (mplrs.R != NULL) /* redund final_print calls mplrs_worker_init */
+	{
+		free(mplrs.R->redineq);
+		free(mplrs.R->facet);
+		free(mplrs.R);
+	}
+	free(consumer.redineq);
+	mplrs_freemps();
+	free(mplrs.finalwarn);
+	free(mplrs.curwarn);
 	MPI_Finalize();
 	return 0;
 }
@@ -2033,11 +2533,11 @@ void consumer_start_incoming(void)
 msgbuf *consumer_queue_incoming(int *header, int target)
 {
 	msgbuf *curhead = consumer.incoming;
-	msgbuf *newmsg = (msgbuf *)malloc(sizeof(msgbuf));
+	msgbuf *newmsg = malloc(sizeof(msgbuf));
 
-	newmsg->req = (MPI_Request *)malloc(sizeof(MPI_Request)*2);
-	newmsg->buf = (void **)malloc(sizeof(void *));
-	newmsg->buf[0] = (char *)malloc(sizeof(char)*(header[1]+1));
+	newmsg->req = malloc(sizeof(MPI_Request)*2);
+	newmsg->buf = malloc(sizeof(void *));
+	newmsg->buf[0] = malloc(sizeof(char)*(header[1]+1));
 	newmsg->count = 1;
 	newmsg->target = target;
 	newmsg->next = curhead;
@@ -2057,29 +2557,64 @@ msgbuf *consumer_queue_incoming(int *header, int target)
 	return newmsg;
 }
 
+/* update consumer.redineq with the redundant inequalities in rstring */
+/* these came from process from (used for an optimization)
+ */
+void consumer_process_redund(const char *rstring, int from)
+{
+	const char *start=rstring;
+	char *endptr=NULL;
+	long index;
+	int i=0;
+
+	mprintf2(("C: processing redund_string %s\n", rstring));
+	do {
+		index = strtol(start, &endptr, 10);
+		if (index!=0)
+		{
+			mprintf3(("C: got redundant inequality %ld\n",index));
+			i++;
+			consumer.redineq[index] = from;
+			start = endptr;
+		}
+	} while (index!=0);
+	mprintf2(("C: got %d redundant inequalities\n", i));
+}
+
 /* check our incoming messages, process and remove anything that
  * has completed
  */
 void consumer_proc_messages(void)
 {
 	msgbuf *msg, *prev=NULL, *next;
-	int i,len;
+	int i,len,omit;
 
 	for (msg=consumer.incoming; msg; msg=next)
 	{
+		omit = 0;
 		next=msg->next;
 		if (outgoing_msgbuf_completed(msg))
 		{
 			if (consumer.waiting_initial &&
-			    msg->target != INITIAL)
+			    consumer.final_print &&
+			    msg->target != INITIAL && msg->target != MASTER)
+			{
+				prev = msg; /* 2020.5.29 need to update prev
+					     * so we don't lose this msg */
 				continue;
+			}
+			/* final_print condition is false when overflow
+			 * has occurred.  No longer important to print all
+			 * output, but need to print or discard it in case
+			 * overflow prevents us from seeing "begin"
+			 */
 
 			/* we wait on all other output until we've printed
 			 * the initial output containing ...begin\n
 			 * to ensure pretty output, if this is the begin,
 			 * flip the flag.
 			 */
-			if (consumer.waiting_initial)
+			if (consumer.waiting_initial == 1 && msg->target == INITIAL)
 			{
 				len=strlen((char *)msg->buf[0])-5;
 				for (i=0; i<len; i++)
@@ -2091,13 +2626,40 @@ void consumer_proc_messages(void)
 						consumer.waiting_initial = 0;
 						break;
 					}
+				if (consumer.waiting_initial) /* no begin here*/
+				{ /* can happen in 7.1 */
+					prev=msg; /* wait for a begin line */
+					continue;
+				}
 			}
-
+			else if (consumer.waiting_initial == 2 && msg->target == INITIAL)
+			{ /* could combine with other condition above */
+			  /* maybe easier to read if separate */
+				prev = msg; /* 2020.5.29 same here*/
+				continue; /* wait for master to report warnings */
+			}
+			else if (consumer.waiting_initial == 2 && msg->target == MASTER)
+			{
+				consumer.waiting_initial = 1;
+				/* if no master warning messages produced,
+				 * master sends a space to prod us along.
+				 * don't print that space.
+				 */
+				if (!strcmp(msg->buf[0], " \n"))
+					omit = 1;
+			}
 			/* print the 'begin' only after phase1_print */
-			if (msg->data == 1)
+			if (msg->data == 1 && !omit)
+			{
 				fprintf(consumer.output, "%s",
 					(char*)msg->buf[0]);
-			else if (msg->data == 2)
+				/* flush to get more streaminess to output
+				 * file and not break inside a line, as
+				 * requested
+				 */
+				fflush(consumer.output);
+			}
+			else if (msg->data == 2 && !omit)
 			{
 				if (!consumer.oflow_flag)
 				{
@@ -2105,7 +2667,10 @@ void consumer_proc_messages(void)
 					fprintf(stderr,"%s",(char*)msg->buf[0]);
 				}
 			}
-			else /* headed to stderr */
+			else if (msg->data == 3 && !omit) /* redund string */
+				consumer_process_redund((char*)msg->buf[0],
+							msg->target);
+			else if (!omit) /* headed to stderr */
 				fprintf(stderr, "%s", (char*)msg->buf[0]);
 
 			free_msgbuf(msg);
@@ -2133,6 +2698,7 @@ int consumer_checkpoint(void)
 		 MPI_STATUS_IGNORE);
 	if (len == -1) /* master produces checkpoint file */
 	{
+		mplrs_freemps();
 		MPI_Finalize();
 		return 0;
 	}
@@ -2147,13 +2713,14 @@ int consumer_checkpoint(void)
 			 MPI_STATUS_IGNORE);
 		if (len<0)
 			break;
-		str = (char*)malloc(sizeof(char)*len);
+		str = malloc(sizeof(char)*len);
 		MPI_Recv(str, len, MPI_CHAR, MASTER, 1, MPI_COMM_WORLD,
 			 MPI_STATUS_IGNORE);
 		fprintf(consumer.output,"%s\n",str);
 		free(str);
 	}
 	fprintf(consumer.output,"*Checkpoint finished above this line\n");
+	mplrs_freemps();
 	MPI_Finalize();
 	return 0;
 }
@@ -2163,7 +2730,7 @@ int consumer_checkpoint(void)
  *    then if the first part has completed, send the remaining parts
  * Don't use with *queued* incoming msgbuf.
  */
-inline int outgoing_msgbuf_completed(msgbuf *msg)
+int outgoing_msgbuf_completed(msgbuf *msg)
 {
 	int flag;
 	int count = msg->count;
@@ -2190,7 +2757,7 @@ inline int outgoing_msgbuf_completed(msgbuf *msg)
 	return 0;
 }
 
-inline void free_msgbuf(msgbuf *msg)
+void free_msgbuf(msgbuf *msg)
 {
 	int i;
 	for (i=0; i<msg->count; i++)
@@ -2221,6 +2788,7 @@ outlist *reverse_list(outlist* head)
 void send_master_stats(void)
 {
 	unsigned long stats[4] = {master.tot_L, master.num_empty, 0, 0};
+	mprintf3(("M: Sending master_stats to consumer\n"));
 	MPI_Send(stats, 4, MPI_UNSIGNED_LONG, CONSUMER, 1, MPI_COMM_WORLD);
 	return;
 }
@@ -2238,21 +2806,16 @@ void recv_master_stats(void)
 /* send stats to target for final print */
 void send_counting_stats(int target)
 {
-	char *vol = NULL;
-	mprintf3(("%d: sending counting stats to %d\n", mplrs.rank, target));
-	if (mplrs.facets>0)
-		vol = cprat("", mplrs.Vnum, mplrs.Vden);
-	else
-	{
-		vol = (char *)malloc(sizeof(char)*2);
-		vol[0] = '0'; vol[1] = '\0';
-	}
+	char *vol = cprat("", mplrs.Vnum, mplrs.Vden);
 	unsigned long long stats[10] = {mplrs.rays, mplrs.vertices, mplrs.bases,
 			          mplrs.facets, mplrs.intvertices,
 				  strlen(vol)+1, mplrs.deepest, mplrs.overflow,
-				  mplrs.linearities, 0};
+				  mplrs.linearities, strlen(mplrs.finalwarn)+1};
+	mprintf3(("%d: sending counting stats to %d\n", mplrs.rank, target));
+
 	MPI_Send(stats, 10, MPI_UNSIGNED_LONG_LONG, target, 1, MPI_COMM_WORLD);
 	MPI_Send(vol, stats[5], MPI_CHAR, target, 1, MPI_COMM_WORLD);
+	MPI_Send(mplrs.finalwarn, stats[9], MPI_CHAR, target, 1, MPI_COMM_WORLD);
 	free(vol);
 	return;
 }
@@ -2260,7 +2823,7 @@ void send_counting_stats(int target)
 /* gets counting stats from target */
 void recv_counting_stats(int target)
 {
-	char *vol;
+	char *vol, *finalwarn;
 	unsigned long long stats[10];
 	MPI_Recv(stats, 10, MPI_UNSIGNED_LONG_LONG, target, 1, MPI_COMM_WORLD,
 		 MPI_STATUS_IGNORE);
@@ -2276,14 +2839,23 @@ void recv_counting_stats(int target)
 		consumer.overflow[target] = stats[7];
 	if (stats[8] > mplrs.linearities)
 		mplrs.linearities = stats[8];
-	vol = (char*)malloc(sizeof(char)*stats[5]);
+	vol = malloc(sizeof(char)*stats[5]);
 	MPI_Recv(vol, stats[5], MPI_CHAR, target, 1, MPI_COMM_WORLD,
 		 MPI_STATUS_IGNORE);
+	/* following safe even #ifdef LRSLONG, volume always 0/1 */
 	plrs_readrat(mplrs.Tnum, mplrs.Tden, vol);
 	copy(mplrs.tN, mplrs.Vnum); copy(mplrs.tD, mplrs.Vden);
 	linrat(mplrs.tN, mplrs.tD, 1L, mplrs.Tnum, mplrs.Tden,
 	       1L, mplrs.Vnum, mplrs.Vden);
 	free(vol);
+	finalwarn = malloc(sizeof(char)*stats[9]);
+	MPI_Recv(finalwarn, stats[9], MPI_CHAR, target, 1, MPI_COMM_WORLD,
+		 MPI_STATUS_IGNORE);
+	if (stats[9]>2)
+		mplrs.finalwarn = append_out(mplrs.finalwarn,
+					     &mplrs.finalwarn_len,
+					     finalwarn);
+	free(finalwarn);
 	return;
 }
 
@@ -2310,13 +2882,18 @@ void initial_print(void)
 #endif
 		fprintf(consumer.output, "*Input taken from %s\n",
 			mplrs.input_filename);
-		fprintf(consumer.output, "*Starting depth of %d maxcobases=%d ",
-			master.initdepth, master.maxcobases);
-		fprintf(consumer.output, "maxdepth=%d lmin=%d lmax=%d scale=%d\n",
-			master.maxdepth, master.lmin,
-			master.lmax, master.scalec);
-		if (mplrs.countonly)
-			fprintf(consumer.output, "*countonly\n");
+		if (mplrs.redund == 0)
+		{
+			fprintf(consumer.output, "*Starting depth of %d maxcobases=%d ",
+				master.initdepth, master.maxcobases);
+			fprintf(consumer.output, "maxdepth=%d lmin=%d lmax=%d scale=%d\n",
+				master.maxdepth, master.lmin,
+				master.lmax, master.scalec);
+			if (mplrs.countonly)
+				fprintf(consumer.output, "*countonly\n");
+		}
+  		else
+  			fprintf(consumer.output, "*redund\n");
 		if (consumer.output==stdout)
 			return;
 #ifdef MA
@@ -2339,33 +2916,131 @@ void initial_print(void)
 #endif
 		printf("*Input taken from %s\n",mplrs.input_filename);
 		printf("*Output written to: %s\n",consumer.output_filename);
-		printf("*Starting depth of %d maxcobases=%d ", master.initdepth,
-		       master.maxcobases);
-		printf("maxdepth=%d lmin=%d lmax=%d scale=%d\n", master.maxdepth,
-		       master.lmin, master.lmax, master.scalec);
-		if (mplrs.countonly)
-			printf("*countonly\n");
+		if (mplrs.redund == 0)
+		{
+			printf("*Starting depth of %d maxcobases=%d ", master.initdepth,
+				master.maxcobases);
+			printf("maxdepth=%d lmin=%d lmax=%d scale=%d\n", master.maxdepth,
+				master.lmin, master.lmax, master.scalec);
+			if (mplrs.countonly)
+				printf("*countonly\n");
+		}
+  		else
+  			printf("*redund\n");
 }
 
 /* do the "*Phase 1 time: " print */
-inline void phase1_print(void)
+void phase1_print(void)
 {
 	struct timeval cur;
 	gettimeofday(&cur, NULL);
+	fprintf(consumer.output, "*Phase 1 time: %ld seconds.\n",
+		cur.tv_sec-mplrs.start.tv_sec);
+	if (consumer.output_filename == NULL)
+		return;
 	printf("*Phase 1 time: %ld seconds.\n",cur.tv_sec-mplrs.start.tv_sec);
 	return;
+}
+
+/* sigh... when doing redund, we re-run a final redund check of all
+ * detected redundant lines, in order to avoid removing e.g. all
+ * identical copies of a fixed line (when each on a different worker).
+ * this is done on the consumer. but then lrslib does post_output, which
+ * normally can't be done on the consumer. so here we intercept the data
+ * produced by this final redund run, and update consumer.redineq ...
+ */
+void consumer_finalredund_handler(const char *data)
+{
+	int i, m = mplrs.P->m_A;
+	for (i=0; i<=m; i++)
+		consumer.redineq[i] = 0;
+	consumer_process_redund(data, CONSUMER);
+}
+
+/* set R->redineq using consumer.redineq, for final check */
+void consumer_setredineq(void)
+{
+	int i, m, max, maxi;
+	int *counts = calloc(mplrs.size, sizeof(int));
+	m = mplrs.P->m_A;
+
+	/* hack output to file (if using file).
+	 * done here in case of re-init on overflow (eg redund on mit.ine)
+	 */
+	lrs_ofp = consumer.output;
+
+	/* optimization per DA, with current way of splitting redund
+	 * we can choose the worker (maxi) that produced the most redundant
+	 * inequalities and not recheck those at the end
+	 */
+	for (i=1; i<=m; i++)
+		if (consumer.redineq[i]!=0)
+			counts[consumer.redineq[i]]++;
+	max = -1;
+	maxi = -1; /* not needed, for warning removal only */
+	for (i=0; i<mplrs.size; i++)
+		if (counts[i]>max)
+		{
+			max=counts[i];
+			maxi = i;
+		}
+	free(counts);
+
+	mprintf(("C: resetting redineq for final check (maxi:%d,max:%d) on:",
+		 maxi,max));
+	for (i=1; i<=m; i++)
+	{
+		if (consumer.redineq[i] == maxi && max>0) /* DA: max=0 means no redundancies found*/
+			mplrs.R->redineq[i] = -1;
+		else if (consumer.redineq[i] > 0)
+		{
+			mplrs.R->redineq[i] =  1;
+			mprintf((" %d", i));
+		}
+		else if (mplrs.R->redineq[i] != 2)
+			mplrs.R->redineq[i] =  0;
+	}
+	mprintf(("\n"));
+	mplrs.R->verifyredund = 1;
 }
 
 /* do the final print */
 void final_print(void)
 {
+	char *argv[] = {argv0};
 	struct timeval end;
 	char *vol=NULL;
+#ifdef MA
 	int i, num64=0, num128=0, numgmp=0;
+#endif
+
+	if (mplrs.redund)
+	{
+		mplrs_worker_init();
+		consumer_setredineq();
+
+		mprintf(("C: calling lrs_main for final redund check\n"));
+		lrs_ofp = consumer.output; /* HACK to get redund output in
+					    * output file ... */
+		consumer.final_redundcheck = 1;
+		run_lrs(1, argv, 0, 1, NULL, NULL);
+		mprintf(("C: lrs_main returned from final redund check\n"));
+		if (mplrs.overflow != 3)
+			mplrs.lrs_main(0,NULL,&mplrs.P,&mplrs.Q,0,2,NULL,mplrs.R);
+	}
+
+	else
+		fprintf(consumer.output, "end\n");
+
+	if (strlen(mplrs.finalwarn)>1) /*avoid spurious newline from append_out*/
+		fprintf(consumer.output, "%s", mplrs.finalwarn);
+
+	/* after the (expensive) final redund check */
 	gettimeofday(&end, NULL);
 
-	fprintf(consumer.output, "end\n");
-	printf("*Total number of jobs: %lu, L became empty %lu times, tree depth %llu\n", master.tot_L, master.num_empty,mplrs.deepest);
+	fprintf(consumer.output, "*Total number of jobs: %lu, L became empty %lu times, tree depth %llu\n", master.tot_L, master.num_empty,mplrs.deepest);
+	if (consumer.output_filename != NULL)
+		printf("*Total number of jobs: %lu, L became empty %lu times, tree depth %llu\n", master.tot_L, master.num_empty,mplrs.deepest);
 #ifdef MA
 	for (i=0; i<mplrs.size; i++)
 	{
@@ -2379,11 +3054,18 @@ void final_print(void)
 			numgmp++;
 	}
 #ifdef B128
-	printf("*Finished with %d 64-bit, %d 128-bit, %d GMP workers\n",
-		num64, num128, numgmp);
+	fprintf(consumer.output, "*Finished with %d 64-bit, %d 128-bit, %d GMP workers\n",
+                num64, num128, numgmp);
+	if (consumer.output_filename != NULL)
+		printf("*Finished with %d 64-bit, %d 128-bit, %d GMP workers\n",
+		       num64, num128, numgmp);
 #else
-	printf("*Finished with %d 64-bit, %d GMP workers\n",
-		num64, num128);     /*DA since no 128 bit support, num128 counts gmp */
+	fprintf(consumer.output, "*Finished with %d 64-bit, %d GMP workers\n",
+		num64, num128);
+	if (consumer.output_filename != NULL)
+		printf("*Finished with %d 64-bit, %d GMP workers\n",
+			num64, num128); /*DA since no 128 bit support,
+					  num128 counts gmp */
 #endif
 #endif
 	if (mplrs.facets>0)
@@ -2402,8 +3084,10 @@ void final_print(void)
 			      mplrs.linearities,mplrs.linearities+mplrs.facets);
 		fputc('\n', consumer.output);
 	}
-	else
-	{
+	else if (mplrs.redund == 0 && (mplrs.rays+mplrs.vertices>0))
+				    /*DA: seems like V-rep output not redund!?*/
+	{			    /* yes, H-rep output is above, V-rep here,
+				     * just 'else' would also get redund runs */
 		fprintf(consumer.output, "*Totals: vertices=%llu rays=%llu bases=%llu integer-vertices=%llu",
 			mplrs.vertices,mplrs.rays,mplrs.bases,mplrs.intvertices);
 		if (mplrs.linearities > 0)
@@ -2440,7 +3124,7 @@ void final_print(void)
 			      mplrs.linearities,mplrs.linearities+mplrs.facets);
 		putchar('\n');
 	}
-	else
+	else if (mplrs.redund == 0 && (mplrs.rays+mplrs.vertices>0))
 	{
 		printf("*Totals: vertices=%llu rays=%llu bases=%llu integer-vertices=%llu",
 		       mplrs.vertices,mplrs.rays,mplrs.bases,mplrs.intvertices);
@@ -2467,18 +3151,50 @@ void open_outputblock(void)
 void close_outputblock(void)
 {
 	mplrs.outputblock--;
-	if (mplrs.outnum++ > mplrs.maxbuf && /* buffer <maxbuf output lines */
-	    mplrs.outputblock <= 0 &&
-	    mplrs.initializing != 1) /* not in phase 1 (need 'begin' first) */
+	if (okay_to_flush())
 	{
 		process_output();          /* before starting a flush */
 		clean_outgoing_buffers();
 	}
 }
 
+/* the condition on whether we should do a maxbuf-based
+ * flush of the output.  Bit complicated and used twice
+ * so broken out here.
+ */
+int okay_to_flush(void)
+{
+	return
+	 (mplrs.outnum++ > mplrs.maxbuf && /* buffer <maxbuf output lines */
+	  mplrs.outputblock <= 0 && /* don't flush if open output block */
+	  mplrs.initializing != 1 && /* don't flush in phase 1 */
+	  mplrs.rank != MASTER /* need initial warnings together */
+#ifdef MA
+	 && mplrs.overflow == 2 /* avoid duplicate output lines if
+				 * overflow possible, only flush when
+				 * using GMP; hurts performance
+				 */
+#endif
+	);
+	/* not in phase 1 (need 'begin' first) */
+	/* must not flush during phase 1 to avoid multiple 'begin'
+	 * statements. otherwise, an overflow could happen after
+	 * the flush and we'd produce another 'begin'
+	 */
+	/* master doesn't flush here to ensure one block with any
+	 * messages from startup, avoiding splitting warnings around 'begin'
+	 */
+}
+
+
 void post_output(const char *type, const char *data)
 {
-	outlist *out = (outlist *)malloc(sizeof(outlist));
+	outlist *out;
+	
+	if (mplrs.rank == CONSUMER && !strcmp(type, "redund")) /* sigh ... */
+		return consumer_finalredund_handler(data);
+
+	out = malloc(sizeof(outlist));
 	out->type = dupstr(type);
 	out->data = dupstr(data);
 	out->next = NULL;
@@ -2487,14 +3203,7 @@ void post_output(const char *type, const char *data)
 	else
 		mplrs.ol_tail->next = out;
 	mplrs.ol_tail = out;
-	if (mplrs.outnum++ > mplrs.maxbuf && /* buffer <maxbuf output lines */
-            mplrs.outputblock <= 0 && 
-            mplrs.initializing != 1 && data[strlen(data)-1]=='\n') 
-		/* not in phase 1 (need 'begin' first) */
-		/* must not flush during phase 1 to avoid multiple 'begin'
-		 * statements. otherwise, an overflow could happen after
-		 * the flush and we'd produce another 'begin'
-		 */
+	if (okay_to_flush() && data[strlen(data)-1]=='\n')
 	{
 		process_output();	   /* before starting a flush */
 		clean_outgoing_buffers();
@@ -2502,36 +3211,9 @@ void post_output(const char *type, const char *data)
 }
 
 /* strdup */
-inline char *dupstr(const char *str)
+char *dupstr(const char *str)
 {
-	char *buf = (char *)malloc(sizeof(char)*(strlen(str)+1));
+	char *buf = malloc(sizeof(char)*(strlen(str)+1));
 	strcpy(buf,str);
 	return buf;
-}
-
-/* utilities based on mts code */
-/* TODO: changes */
-int stream_printf(FILE *str, const char *fmt, ...)
-{ /* test if str is stdout/stderr */
-	int newlen;
-	char *newbuf;
-	va_list args;
-
-	va_start(args, fmt);
-
-	/* need a buffer of size newlen + 1 ('\0') */
-	newlen = vsnprintf(NULL, 0, fmt, args);
-	va_end(args);
-	va_start(args, fmt);
-
-	newbuf = (char *)malloc(sizeof(char)*(newlen+1));
-	vsprintf(newbuf, fmt, args);
-	va_end(args);
-	/* todo: fix types or get rid of them entirely */
-	if (str!=stderr) /* send to lrs_ofp ... */
-		post_output("debug", newbuf);
-	else /* send to stderr */
-		post_output("warning", newbuf);
-	free(newbuf);
-	return 1;
 }

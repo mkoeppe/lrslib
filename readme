@@ -4,8 +4,143 @@ Documentation is currently being maintained at the URL:
 
 http://cgm.cs.mcgill.ca/~avis/C/lrs.html
 -----------------------------------------------------------------------------
+
+Version 7.1 
+manual: http://cgm.cs.mcgill.ca/~avis/C/lrslib/USERGUIDE71.html
+
+2020.5.25
+Version 7.1 is a major revision completing the move to an all C library begun
+in 7.0 which was work in progress and has been removed from distribution.
+
+Major changes to lrs:
+1. redund function is now performed by lrs via options, but legacy redund maintained
+2. extract option to extract columns from the input especially with linearities
+3. hvref makes a cross reference list between H and V representations
+
+Major changes to mplrs:
+1. Temporary files no longer used for communicating with workers.
+2. Parallel version of redund is now available
+
+Thanks to David Bremner and Jerry James for advice, patches and other help!
+
+Details below
+
+2020.5.19
+
+redund binaries are no longer produced and lrs does redund
+functioning via the redund option. For a standard redund run (ie all lines checked)
+set up a link:
+%ln -s lrs redund    and if needed %ln -s lrs1 redund1 etc. for single arithmetic
+Now no options are needed and
+
+% redund filename
+
+will remove all redundant inequalities
+
+In mplrs this can be achieved by:
+
+% mpirun -np <procs> mplrs -redund filename
+
+2020.4.27
+
+Changes in mplrs relative to 7.0:
+ 1. All C++ code removed or rewritten in C; C++ compiler no longer required.
+ 2. mplrs uses the new lrslib API (2019.11.8) instead of temporary files for
+    parallel jobs.
+ 3. Support for parallel redund runs using the redund option in input files.
+ 4. Compiler warnings removed.
+ 5. Additional warning and informational messages printed when relevant.
+ 6. New option -redund, for redund runs without adding option to file.
+ 7. Avoid duplicate output lines that were possible on an overflow in
+    hybrid mode.
+ 8. Fix a rare bug that could omit output lines at the start of a run.
+
+2020.2.5
+The extract option is a preprocessing step to remove linearities (if any) and resize
+the A matrix using standard lrs processing, which is output as a valid lrs input file. 
+The resulting file will not contain any equations but may not be full dimensional.
+Options in the input file are stripped.
+User can specify the cols to retain (where this possible by linear independence).
+If there are no linearities in the input file the columns in the option are retained
+and the other ones are deleted. This is useful for projecting a V-representation.
+
+extract 0
+
+retains columns in order 1,2,...,n
+
+extract k   i1 .. ik
+
+retains columns in order i1,...,ik then the missing 1..n as necessary
+Column 0 is always retained.
+
+Use redund to remove redundancies from the output as necessary.
+A full lrs run is not performed, however output can be piped:
+
+% lrs file | redund | lrs
+
+2019.12.30
+
+hvref makes a cross reference list between H and V reps
+Usage  (same for ext file):
+
+Add  printcobasis and incidence options to cube.ine
+
+% lrs cube.ine cube.ext
+% xref cube.ext
+
+Edit the output file  cube.ext.x so that the second line contains two integers
+
+rows maxindex
+
+where rows >= # output lines in cube.ext.x
+      maxindex >= # input lines in cube.ine
+
+or just use 0 0 and the program will tell you which values to use
+
+% hvref cube.ext.x
+
+
+2019.11.8
+
+New redund option causes lrs to perform redund function:
+
+redund start end
+
+limits redundancy checking to input rows numbered start,...,end.
+Defaults  start=1 and end=m  is legacy redund and can be obtained by
+
+redund 0 0
+
+lrs_main has been rewritten as lrsv2_main to avoid temporary files in mplrs.
+It now passes pointers to P and Q back to mplrs and is called 3 times 
+according to the stage flag.
+
+stage=0  performs problem setup and reads the input file
+stage=1  performs reverse search or redund function
+stage=2  performs clean up and closes files
+
+2019.6.13
+
+If lrs is compiled with -DLRS_QUIET lrs produces an ouput file with only the data
+between the begin and end lines, ie. a matrix of the V or H representation.
+The only exception is if the input is a V-rep and output has linearities
+in which case line one has the linearity information
+
+--------------------------------------------------------------------------------------
+2019.1.5
+Various pivot rules are implemented for solving LPs using variations of the lponly option.
+To get pivot counts correct it is best to use lrsgmp at least for now
+
+lponly    default, currently Dantzig's rule
+lponly_b  Bland's rule, which is used for vertex enumeration
+lponly_d  Dantzig's rule, the only rule used up to Version 7.1           
+lponly_r  random edge rule
+lponly_rd alernates random edege and Dantzig
+
+-----------------------------------------------------------------------------
+
 2018.7.1  
-Version 7.0 (Beta release)  (lrslib-070)
+Version 7.0   (lrslib-070)
 
 User's guide: http://cgm.cs.mcgill.ca/~avis/C/lrslib/USERGUIDE70.html
 

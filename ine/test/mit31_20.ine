@@ -1,6 +1,6 @@
 mit31-20.ine
 H-representation
-digits 80
+*digits 80
 begin
 31 20 integer
 1 6 -12 -3 0 0 0 12 8 0 0 -12 -3 0 0 0 6 0 -1 0 

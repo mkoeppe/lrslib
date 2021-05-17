@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 
 #define MAXCOL 1000  /* maximum number of variables. */
@@ -71,8 +72,7 @@ void fel_abort(char str[])
 	  }
 	else if (firstline)
 	  {
-	    stringcpy(Q->fname, line);
-	    fprintf(lrs_ofp, "%s\n", Q->fname);
+	    fprintf(lrs_ofp, "%s\n", line);
 	    firstline = FALSE;
 	  }
 	if (fscanf(lrs_ifp, "%s", line) == EOF)
@@ -1005,6 +1005,8 @@ void full_fel(lrs_dic *iP, lrs_dat *iQ, long *variables)
      /* allocate space for problem */
      if( (Q = lrs_alloc_dat("LRS GLOBALS")) == NULL)
        fel_abort("ERROR>Can't allocate memory for structures");
+
+     strcpy(Q->fname,"fourier");   /* program name */
     
      if (!readHfile(Q))    /* get info about data from input file */
        {

@@ -49,6 +49,7 @@ char LegacyMsg[] =
 #include <ctype.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 #include "lrsnashlib.h"
 
@@ -69,8 +70,6 @@ char *Outfile = NULL;
 int openIO(void) {
   if (!lrs_init("*lrsnash:"))
     return FALSE;
-  fprintf(stderr, "\n");
-  fprintf(stderr, LRSLIB_AUTHOR);
   fprintf(stderr, "\n");
 	if(Outfile != NULL) {
 	  if ((lrs_ofp = fopen(Outfile, "w")) == NULL) {
@@ -118,7 +117,7 @@ int tl_readrat(long *num, long *den, char *str) {
 
 
 //----------------------------------------------------------------------------------------//
-int readGame(game * g, char *filename)
+int readGame(game * g, const char *filename)
 {
 	FILE *IN;
   long pos, s, t, nr, nc;
@@ -162,11 +161,11 @@ int readGame(game * g, char *filename)
 static long Print_game_flag;
 static long Standard_input_flag;
 
-void printUsage(char *progname) {
+void printUsage(const char *progname) {
 	fprintf(stderr, Usage, progname, progname, progname);
 }
 
-void printInfo(char *progname) {
+void printInfo(const char *progname) {
 	fprintf(stderr, Helptext, progname, progname);
 }
 
@@ -252,7 +251,7 @@ int getArgs(int argc, char **argv)
 
 //----------------------------------------------------------------------------------------//
 // Checks if an input file is legacy (contains letters)
-int isLegacy(char *filename) {
+int isLegacy(const char *filename) {
 	FILE *fp;
 	int i, n, foundLetter = FALSE;
 	char buf[100];

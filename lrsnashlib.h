@@ -12,6 +12,8 @@
 /* by Terje Lensberg, October 26, 2015:                */
 /*******************************************************/
 
+/* minor mod 2018.2.12 to set Q->fname="nash"          */
+
 /*************/
 /* Games     */
 /*************/
@@ -65,7 +67,6 @@ void initFwidth(game *g);
 void updateFwidth(game *g, int col, int pos, char *str);
 
 
-extern long FirstTime;          /* set this to true for every new game to be solved */
 static long Debug_flag;
 static long Verbose_flag;
 

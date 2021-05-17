@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 
 #define MAXCOL 1000     /* maximum number of colums */
@@ -46,6 +47,7 @@ main (int argc, char *argv[])
     if (Q == NULL)
        return 1;
 
+    strcpy(Q->fname,"lpdemo");
     Q->m=m;  Q->n=n;
 
     Q->lponly=TRUE;      /* we do not want all vertices generated!   */
@@ -66,7 +68,7 @@ main (int argc, char *argv[])
 
 /* Print output */
 
-   prat ("\nObjective value = ", Q->objnum, Q->objden);
+   prat ("\nObjective value = ", P->objnum, P->objden);
 
    for (col = 0; col < Q->n; col++)
      if (lrs_getsolution (P, Q, output, col))

@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 
 #define MAXCOL 1000     /* maximum number of colums */
@@ -25,6 +26,7 @@ main (int argc, char *argv[])
 
   long i;
   long col;    	/* output column index for dictionary            */
+
 
 /* Global initialization - done once */
 

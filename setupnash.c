@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 #define MAXLINE 1000
 

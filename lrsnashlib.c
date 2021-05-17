@@ -16,17 +16,18 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 #include "lrsnashlib.h"
 
-long FirstTime;
+static long FirstTime; /* set this to true for every new game to be solved */
 
 //========================================================================
 // Standard solver. Modified version of main() from lrsNash
 //========================================================================
 int lrs_solve_nash(game * g)
 {
-  lrs_dic *P1, *P2;             /* structure for holding current dictionary and indices */
+  lrs_dic *P1;             /* structure for holding current dictionary and indices */
   lrs_dat *Q1, *Q2;             /* structure for holding static problem data            */
 
   lrs_mp_vector output1;        /* holds one line of output; ray,vertex,facet,linearity */
@@ -53,7 +54,7 @@ int lrs_solve_nash(game * g)
 
   Q1 = lrs_alloc_dat("LRS globals");    /* allocate and init structure for static problem data */
   if (Q1 == NULL) {
-    return 1;
+    return 0;
   }
 
   Q1->nash = TRUE;
@@ -65,7 +66,7 @@ int lrs_solve_nash(game * g)
 
   P1 = lrs_alloc_dic(Q1);       /* allocate and initialize lrs_dic */
   if (P1 == NULL) {
-    return 1;
+    return 0;
   }
 
   BuildRep(P1, Q1, g, 1, 0);
@@ -75,7 +76,7 @@ int lrs_solve_nash(game * g)
   /* allocate and init structure for player 2's problem data */
   Q2 = lrs_alloc_dat("LRS globals");
   if (Q2 == NULL) {
-    return 1;
+    return 0;
   }
 
   Q2->debug = Debug_flag;
@@ -87,7 +88,7 @@ int lrs_solve_nash(game * g)
 
   P2orig = lrs_alloc_dic(Q2);   /* allocate and initialize lrs_dic */
   if (P2orig == NULL) {
-    return 1;
+    return 0;
   }
   BuildRep(P2orig, Q2, g, 0, 1);
   A2orig = P2orig->A;
@@ -326,13 +327,11 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
 /* assign local variables to structures */
 
   lrs_mp_matrix A;
-  long *B, *C, *Row, *Col;
+  long *B, *C, *Col;
   long *inequality;
   long *linearity;
   long hull = Q->hull;
   long m, d, lastdv, nlinearity, nredundcol;
-
-  static long ocount = 0;
 
   m = D->m;
   d = D->d;
@@ -345,7 +344,6 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
   A = D->A;
   B = D->B;
   C = D->C;
-  Row = D->Row;
   Col = D->Col;
   inequality = Q->inequality;
 
@@ -460,7 +458,6 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
 
   if (Q->verbose) {
     fprintf(lrs_ofp, "\nNumber of pivots for starting dictionary: %ld", Q->count[3]);
-    ocount = Q->count[3];
   }
 
 /* Do dual pivots to get primal feasibility */
@@ -468,14 +465,12 @@ lrs_getfirstbasis2(lrs_dic ** D_p, lrs_dat * Q, lrs_dic * P2orig, lrs_mp_matrix 
     if (Q->verbose) {
       fprintf(lrs_ofp, "\nNumber of pivots for feasible solution: %ld", Q->count[3]);
       fprintf(lrs_ofp, " - No feasible solution");
-      ocount = Q->count[3];
     }
     return FALSE;
   }
 
   if (Q->verbose) {
     fprintf(lrs_ofp, "\nNumber of pivots for feasible solution: %ld", Q->count[3]);
-    ocount = Q->count[3];
   }
 
 /* Now solve LP if objective function was given */
@@ -646,7 +641,7 @@ long getabasis2(lrs_dic * P, lrs_dat * Q, lrs_dic * P2orig, long order[], long l
         else if (j < nlinearity) {      /* cannot pivot linearity to cobasis */
           if (zero(A[Row[i]][0])) {
 #ifndef LRS_QUIET
-            fprintf(lrs_ofp, "\n*Input linearity in row %ld is redundant--skipped", order[j]);
+            fprintf(lrs_ofp, "*Input linearity in row %ld is redundant--skipped\n", order[j]);
 #endif
             linearity[j] = 0;
           }
@@ -769,7 +764,7 @@ long lrs_nashoutput(lrs_dat * Q, lrs_mp_vector output, long player)
 int lrs_solve_nash_legacy (int argc, char *argv[])
 // Handles legacy input files
 {
-  lrs_dic *P1,*P2;		/* structure for holding current dictionary and indices */
+  lrs_dic *P1;			/* structure for holding current dictionary and indices */
   lrs_dat *Q1,*Q2;		/* structure for holding static problem data            */
 
   lrs_mp_vector output1;	/* holds one line of output; ray,vertex,facet,linearity */
@@ -804,8 +799,6 @@ int lrs_solve_nash_legacy (int argc, char *argv[])
 
   if ( !lrs_init ("\n*nash:"))
     return 1;
-  printf("\n");
-  printf(LRSLIB_AUTHOR);
 
 /*********************************************************************************/
 /* Step 1: Allocate lrs_dat, lrs_dic and set up the problem                      */
@@ -820,7 +813,7 @@ int lrs_solve_nash_legacy (int argc, char *argv[])
 
   if (!lrs_read_dat (Q1, argc, argv))	/* read first part of problem data to get dimensions   */
     return 1;                   	/* and problem type: H- or V- input representation     */
-
+  strcpy(Q1->fname,"nash");     /* program name */
   P1 = lrs_alloc_dic (Q1);	/* allocate and initialize lrs_dic                     */
   if (P1 == NULL)
     return 1;
@@ -839,6 +832,7 @@ int lrs_solve_nash_legacy (int argc, char *argv[])
   if (Q2 == NULL)
           return 1;
 
+  strcpy(Q2->fname,"nash");     /* program name */
   Q2->nash=TRUE;
 
   if (!lrs_read_dat (Q2, 2, argv))	/* read first part of problem data to get dimensions   */

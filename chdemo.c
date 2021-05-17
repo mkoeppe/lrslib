@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "lrsdriver.h"
 #include "lrslib.h"
 
 #define MAXCOL 1000     /* maximum number of colums */

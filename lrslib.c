@@ -628,8 +628,8 @@ lrs_print_header(const char *name)
   return;
 #endif
   fprintf (lrs_ofp,"%s", name);
-  fprintf (lrs_ofp,TITLE);
-  fprintf (lrs_ofp,VERSION);
+  fprintf (lrs_ofp,LRSLIB_TITLE);
+  fprintf (lrs_ofp,LRSLIB_VERSION);
   fprintf (lrs_ofp,"(");
   fprintf (lrs_ofp,BIT);
   fprintf (lrs_ofp,",");

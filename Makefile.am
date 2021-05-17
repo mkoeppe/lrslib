@@ -72,7 +72,7 @@ nashdemo_LDADD = liblrs.la
 
 
 include_HEADERS = lrslib.h lrsdriver.h lrsgmp.h lrslong.h lrsmp.h
-noinst_HEADERS = lrsnashlib.h mplrs.h
+noinst_HEADERS = lrsnashlib.h mplrs.h lrsrestart.h
 
 examplesdir = $(pkgdatadir)/doc/examples
 nobase_dist_examples_DATA =			\

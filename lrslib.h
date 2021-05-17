@@ -1,6 +1,6 @@
 /* lrslib.h (vertex enumeration using lexicographic reverse search) */
 #define TITLE "lrslib "
-#define VERSION "v.7.1 2020.6.4"
+#define VERSION "v.7.1 2020.10.17"
 #define AUTHOR "*Copyright (C) 1995,2020, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify

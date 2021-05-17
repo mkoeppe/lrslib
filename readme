@@ -8,6 +8,10 @@ http://cgm.cs.mcgill.ca/~avis/C/lrs.html
 Version 7.1 
 manual: http://cgm.cs.mcgill.ca/~avis/C/lrslib/USERGUIDE71.html
 
+2020.10.17
+
+Memory leak in countonly option fixed for mplrs/lrs.
+
 2020.5.25
 Version 7.1 is a major revision completing the move to an all C library begun
 in 7.0 which was work in progress and has been removed from distribution.

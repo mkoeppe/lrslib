@@ -445,9 +445,10 @@ lrs_printoutput (lrs_dat * Q, lrs_mp_vector output)
   long i;
   long len=0;
 
-  ss = (char **)malloc((1+Q->n) * sizeof(char*));
   if (Q->countonly)
      return;
+
+  ss = (char **)malloc((1+Q->n) * sizeof(char*));
 
   if (Q->hull || zero (output[0]))	/*non vertex */
       for (i = 0; i < Q->n; i++)

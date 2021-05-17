@@ -178,13 +178,15 @@ nobase_dist_examples_DATA =			\
 	ine/test-062/zfw91.ine			\
 	ine/test-062/zfw91nn.ine
 
-EXTRA_DIST = 					\
+EXTRA_DIST =					\
 	chdemo.c				\
 	float2rat.c				\
 	fourier.c				\
 	lpdemo.c				\
 	lpdemo1.c				\
 	lpdemo2.c				\
+	lrslong.cpp				\
+	lrsmp.cpp				\
 	plotD.gp				\
 	plotL.gp				\
 	rat2float.c				\

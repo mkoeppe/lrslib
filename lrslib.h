@@ -370,20 +370,13 @@ long lrs_getray (lrs_dic * P, lrs_dat * Q, long col, long comment, lrs_mp_vector
 long lrs_getvertex (lrs_dic * P, lrs_dat * Q, lrs_mp_vector output);
 void lrs_close (const char *name);	/* close lrs lib program "name"                 */
 long lrs_init (const char *name);	/* initialize lrslib and arithmetic package for prog "name" */
-<<<<<<< HEAD
-=======
 lrs_dic *lrs_setup(int argc, char *argv[], lrs_dat **Q, lrs_restart_dat *R); /* intialize P,P_orig,Q and read data */
 lrs_dic *lrs_reset(lrs_dic *P_orig, lrs_dat *Q, lrs_restart_dat *R); /* restore P form P_orig reset Q using R */
->>>>>>> lrslib-071a
 void lrs_lpoutput(lrs_dic * P,lrs_dat * Q, lrs_mp_vector output); /* print LP primal and dual solutions */
 void lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col); /* print cobasis for column col(verted or ray)  */
 void lrs_print_header(const char *name);
 void lrs_printoutput (lrs_dat * Q, lrs_mp_vector output); /* print output array                           */
-<<<<<<< HEAD
-void lrs_printrow (const char name[], lrs_dat * Q, lrs_mp_vector output, long rowd); /*print row of A matrix in output[0..rowd]      */
-=======
 void lrs_printrow (const char *name, lrs_dat * Q, lrs_mp_vector output, long rowd); /*print row of A matrix in output[0..rowd]      */
->>>>>>> lrslib-071a
 void lrs_printsol (lrs_dic * P, lrs_dat * Q, long col, long comment);	/* print out solution from col, comment= 0=normal,-1=geometric ray,1..inputd=linearity */
 void lrs_printtotals (lrs_dic * P, lrs_dat * Q);/* print final totals for lrs                   */
 long lrs_set_digits (long dec_digits );  /* set lrsmp digits to equiv. of decimal dec_digits */
@@ -430,11 +423,7 @@ long lrs_degenerate (lrs_dic * P, lrs_dat * Q);	/* TRUE if the dictionary is pri
 long extractcols (lrs_dic * P, lrs_dat * Q);	/* preprocess to just extract given cols */
 void print_basis (FILE * fp, lrs_dat * Q);
 void printA (lrs_dic * P, lrs_dat * Q);	/* raw print of dictionary, bases for debugging   */
-<<<<<<< HEAD
-void pimat (lrs_dic * P, long r, long s, lrs_mp Nt, const char name[]); /* print the row r col s of A                     */
-=======
 void pimat (lrs_dic * P, long r, long s, lrs_mp Nt, const char *name); /* print the row r col s of A                     */
->>>>>>> lrslib-071a
 long readfacets (lrs_dat * Q, long facet[]);	/* read and check facet list                      */
 long readlinearity (lrs_dat * Q);       	/* read and check linearity list                  */
 long readremain    (lrs_dat * Q);       	/* read and check remain vars list for extract    */

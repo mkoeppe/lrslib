@@ -51,21 +51,25 @@ liblrs_la_CPPFLAGS = $(AM_CPPFLAGS)
 liblrs_la_LDFLAGS = -version-info 0:0:0 -no-undefined
 liblrs_la_LIBADD = $(noinst_LTLIBRARIES)
 
-
-# GMP arithmetic
-lrsnash_SOURCES = lrsnash.c lrsnashlib.c lrsdriver.c
+# Binaries using the shared library
+# Upstream makefile calls these binaries "lrs-shared", "lrsnash-shared"
+lrsnash_SOURCES = lrsnash.c lrsnashlib.c
 # note original makefile (version 062) builds lrsnash with -DLRS_QUIET
-lrsnash_CPPFLAGS = -DGMP $(GMP_CFLAGS)
-lrsnash_LDADD = liblrsgmp.la -lgmp
-nashdemo_SOURCES = nashdemo.c lrsnashlib.c lrsdriver.c
-nashdemo_CPPFLAGS = -DGMP $(GMP_CFLAGS)
-nashdemo_LDADD = liblrsgmp.la -lgmp
-redund_SOURCES = lrs.c lrsdriver.c
-redund_CPPFLAGS = -DGMP $(GMP_CFLAGS)
-redund_LDADD = liblrsgmp.la -lgmp
-lrs_SOURCES = lrs.c lrsdriver.c
-lrs_CPPFLAGS = -DGMP $(GMP_CFLAGS)
-lrs_LDADD = liblrsgmp.la -lgmp
+lrsnash_CPPFLAGS = -DGMP -DMA $(GMP_CFLAGS)
+lrsnash_LDADD = liblrs.la
+
+redund_SOURCES = lrs.c
+redund_CPPFLAGS = -DMA $(GMP_CFLAGS)
+redund_LDADD = liblrs.la
+
+lrs_SOURCES = lrs.c
+lrs_CPPFLAGS = -DMA $(GMP_CFLAGS)
+lrs_LDADD = liblrs.la
+
+nashdemo_SOURCES = nashdemo.c lrsnashlib.c
+nashdemo_CPPFLAGS = -DGMP -DMA $(GMP_CFLAGS)
+nashdemo_LDADD = liblrs.la
+
 
 include_HEADERS = lrslib.h lrsdriver.h lrsgmp.h lrslong.h lrsmp.h
 noinst_HEADERS = lrsnashlib.h mplrs.h
@@ -185,6 +189,8 @@ EXTRA_DIST =					\
 	lpdemo.c				\
 	lpdemo1.c				\
 	lpdemo2.c				\
+	lrsgmp.cpp				\
+	lrslib.cpp				\
 	lrslong.cpp				\
 	lrsmp.cpp				\
 	plotD.gp				\

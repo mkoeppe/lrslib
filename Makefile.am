@@ -52,26 +52,7 @@ lrs_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 lrs_LDADD = liblrsgmp.la -lgmp
 
 include_HEADERS = lrslib.h lrsgmp.h
-noinst_HEADERS = lrsmp.h lrslong.h lrsnashlib.h plrs.hpp mplrs.h
-
-# plrs -- requires C++ and Boost.
-if PLRS
-bin_PROGRAMS += plrs plrs1 plrsmp
-noinst_HEADERS += plrs.hpp
-plrs_SOURCES = plrs.cpp lrslib.cpp lrsgmp.cpp
-plrs1_SOURCES = plrs.cpp lrslib.cpp lrslong.cpp
-plrsmp_SOURCES = plrs.cpp lrslib.cpp lrsmp.cpp
-plrs_CPPFLAGS = -DPLRS -DGMP $(BOOST_CPPFLAGS) $(GMP_CFLAGS)
-plrs1_CPPFLAGS = -DPLRS -DLRSLONG $(BOOST_CPPFLAGS)
-plrsmp_CPPFLAGS = -DPLRS $(BOOST_CPPFLAGS)
-plrs_LDFLAGS = $(BOOST_LDFLAGS)
-plrs1_LDFLAGS = $(BOOST_LDFLAGS)
-plrsmp_LDFLAGS = $(BOOST_LDFLAGS)
-plrs_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) -lgmp
-plrs1_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
-plrsmp_LDADD = $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB)
-endif
-
+noinst_HEADERS = lrsmp.h lrslong.h lrsnashlib.h mplrs.h
 
 examplesdir = $(pkgdatadir)/doc/examples
 nobase_dist_examples_DATA =			\

@@ -18,7 +18,7 @@ noinst_PROGRAMS = nashdemo
 # Long arithmetic
 lrs1_SOURCES = lrs.c lrslib.c lrslong.c
 lrs1_CPPFLAGS = -DLRSLONG
-redund1_SOURCES = redund.c lrslib.c lrslong.c
+redund1_SOURCES = lrs.c lrslib.c lrslong.c
 redund1_CPPFLAGS = -DLRSLONG
 
 # Home-grown multi-precision arithmetic
@@ -29,12 +29,27 @@ setnash2_SOURCES = setupnash2.c lrslib.c lrsmp.c
 #redund_SOURCES = redund.c lrslib.c lrsmp.c
 #lrs_SOURCES = lrs.c lrslib.c lrsmp.c
 
-# Installed library (shared and/or static) -- GMP arithmetic
-lib_LTLIBRARIES = liblrsgmp.la
-liblrsgmp_la_LDFLAGS = -version-info 0:0:0 -no-undefined
+
+# Libtool convenience libraries
+noinst_LTLIBRARIES = liblrs1.la liblrs2.la liblrsgmp.la
+
+liblrs1_la_SOURCES = lrslib.c lrslong.c
+liblrs1_la_CPPFLAGS = -DMA -DSAFE -DLRSLONG
+
+liblrs2_la_SOURCES = lrslib.c lrslong.c
+liblrs2_la_CPPFLAGS = -DMA -DSAFE -DB128 -DLRSLONG
+
 liblrsgmp_la_SOURCES = lrslib.c lrsgmp.c
-liblrsgmp_la_CPPFLAGS = -DGMP $(GMP_CFLAGS)
+liblrsgmp_la_CPPFLAGS = -DMA -DGMP $(GMP_CFLAGS)
 liblrsgmp_la_LIBADD = $(GMP_LDFLAGS) -lgmp
+
+
+# Installed library (shared and/or static) -- all arithmetics
+lib_LTLIBRARIES = liblrs.la
+liblrs_la_SOURCES = lrsdriver.c
+liblrs_la_LDFLAGS = -version-info 0:0:0 -no-undefined
+liblrs_la_LIBADD = $(noinst_LTLIBRARIES)
+
 
 # GMP arithmetic
 lrsnash_SOURCES = lrsnash.c lrsnashlib.c
@@ -44,25 +59,31 @@ lrsnash_LDADD = liblrsgmp.la -lgmp
 nashdemo_SOURCES = nashdemo.c lrsnashlib.c
 nashdemo_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 nashdemo_LDADD = liblrsgmp.la -lgmp
-redund_sources = redund.c
+redund_SOURCES = lrs.c
 redund_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 redund_LDADD = liblrsgmp.la -lgmp
 lrs_sources = lrs.c
 lrs_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 lrs_LDADD = liblrsgmp.la -lgmp
 
-include_HEADERS = lrslib.h lrsgmp.h
-noinst_HEADERS = lrsmp.h lrslong.h lrsnashlib.h mplrs.h
+include_HEADERS = lrslib.h lrsdriver.h lrsgmp.h lrslong.h lrsmp.h
+noinst_HEADERS = lrsnashlib.h mplrs.h
 
 examplesdir = $(pkgdatadir)/doc/examples
 nobase_dist_examples_DATA =			\
-	game game1 game2			\
+	games/game				\
+	games/game1				\
+	games/game2				\
+	games/gamec				\
+	games/gamem				\
+	games/gamem.2				\
+	games/gamem.gmp				\
+	games/gamemp				\
+	games/gamemp.1				\
 	cube.ext				\
 	cube.ine				\
 	mit.ine					\
 	mp5.ine					\
-	mp5.mplrs				\
-	mp5.plrs				\
 	ext/metric/cp4.ext			\
 	ext/metric/cp5.ext			\
 	ext/metric/cp6.ext			\
@@ -158,12 +179,10 @@ nobase_dist_examples_DATA =			\
 
 EXTRA_DIST = 					\
 	chdemo.c				\
-	cleanthreads				\
 	float2rat.c				\
 	fourier.c				\
 	lpdemo.c				\
 	lpdemo2.c				\
-	lrs.cpp					\
 	plotD.gp				\
 	plotL.gp				\
 	rat2float.c				\

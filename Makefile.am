@@ -16,14 +16,14 @@ noinst_PROGRAMS = nashdemo
 2nash_SOURCES = 2nash.c
 
 # Long arithmetic
-lrs1_SOURCES = lrs.c lrslib.c lrslong.c
+lrs1_SOURCES = lrs.c lrslib.c lrslong.c lrsdriver.c
 lrs1_CPPFLAGS = -DLRSLONG
-redund1_SOURCES = lrs.c lrslib.c lrslong.c
+redund1_SOURCES = lrs.c lrslib.c lrslong.c lrsdriver.c
 redund1_CPPFLAGS = -DLRSLONG
 
 # Home-grown multi-precision arithmetic
-setnash_SOURCES = setupnash.c lrslib.c lrsmp.c
-setnash2_SOURCES = setupnash2.c lrslib.c lrsmp.c
+setnash_SOURCES = setupnash.c lrslib.c lrsmp.c lrsdriver.c
+setnash2_SOURCES = setupnash2.c lrslib.c lrsmp.c lrsdriver.c
 ## original makefile (version 062) target 'allmp' builds redund, lrs with home-grown mp;
 ## whereas 'all' builds it with GMP; see below.
 #redund_SOURCES = redund.c lrslib.c lrsmp.c
@@ -47,22 +47,23 @@ liblrsgmp_la_LIBADD = $(GMP_LDFLAGS) -lgmp
 # Installed library (shared and/or static) -- all arithmetics
 lib_LTLIBRARIES = liblrs.la
 liblrs_la_SOURCES = lrsdriver.c
+liblrs_la_CPPFLAGS = $(AM_CPPFLAGS)
 liblrs_la_LDFLAGS = -version-info 0:0:0 -no-undefined
 liblrs_la_LIBADD = $(noinst_LTLIBRARIES)
 
 
 # GMP arithmetic
-lrsnash_SOURCES = lrsnash.c lrsnashlib.c
+lrsnash_SOURCES = lrsnash.c lrsnashlib.c lrsdriver.c
 # note original makefile (version 062) builds lrsnash with -DLRS_QUIET
 lrsnash_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 lrsnash_LDADD = liblrsgmp.la -lgmp
-nashdemo_SOURCES = nashdemo.c lrsnashlib.c
+nashdemo_SOURCES = nashdemo.c lrsnashlib.c lrsdriver.c
 nashdemo_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 nashdemo_LDADD = liblrsgmp.la -lgmp
-redund_SOURCES = lrs.c
+redund_SOURCES = lrs.c lrsdriver.c
 redund_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 redund_LDADD = liblrsgmp.la -lgmp
-lrs_sources = lrs.c
+lrs_SOURCES = lrs.c lrsdriver.c
 lrs_CPPFLAGS = -DGMP $(GMP_CFLAGS)
 lrs_LDADD = liblrsgmp.la -lgmp
 
@@ -182,6 +183,7 @@ EXTRA_DIST = 					\
 	float2rat.c				\
 	fourier.c				\
 	lpdemo.c				\
+	lpdemo1.c				\
 	lpdemo2.c				\
 	plotD.gp				\
 	plotL.gp				\

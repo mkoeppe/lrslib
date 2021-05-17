@@ -442,35 +442,6 @@ lrs_printoutput (lrs_dat * Q, lrs_mp_vector output)
   char *sss;
   char **ss;
 
-<<<<<<< HEAD
-if (Q->countonly)
-   return;
-
-#ifdef PLRS
-	//Make new output node
-	string type;
-	
-	//Make stream to collect prat / pmp data
-	stringstream ss;
-
-
-	if (Q->hull || zero (output[0])){
-		/*non vertex */
-		type = "ray";
-		for (int i = 0; i < Q->n; i++)
-			ss<<pmp ("", output[i]);
-	}else{
-		type = "vertex";
-		/* vertex   */
-		ss<<" 1 ";
-		for (int i = 1; i < Q->n; i++)
-			ss<<prat ("", output[i], output[0]);
-	}
-	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output(type.c_str(), ss.str().c_str());
-#else
-=======
->>>>>>> lrslib-071a
   long i;
   long len=0;
 
@@ -571,11 +542,7 @@ void lrs_lpoutput(lrs_dic * P,lrs_dat * Q, lrs_mp_vector output)
 /* end of lrs_lpoutput */
 /***********************/
 void 
-<<<<<<< HEAD
-lrs_printrow (const char name[], lrs_dat * Q, lrs_mp_vector output, long rowd)
-=======
 lrs_printrow (const char *name, lrs_dat * Q, lrs_mp_vector output, long rowd)
->>>>>>> lrslib-071a
 /* print a row of A matrix in output in "original" form  */
 /* rowd+1 is the dimension of output vector                */
 /* if input is H-rep. output[0] contains the RHS      */
@@ -690,15 +657,6 @@ long
 lrs_init (const char *name)       /* returns TRUE if successful, else FALSE */
 {
 
-<<<<<<< HEAD
-  printf ("%s", name);
-  printf (LRSLIB_TITLE);
-  printf (LRSLIB_VERSION);
-  printf ("(");
-  printf (BIT); 
-  printf (","); 
-  printf (ARITH);
-=======
 #ifndef PLRS
 #ifndef LRS_QUIET
  if(overflow!=2)
@@ -706,7 +664,6 @@ lrs_init (const char *name)       /* returns TRUE if successful, else FALSE */
 #endif
 #endif
 
->>>>>>> lrslib-071a
   if (!lrs_mp_init (ZERO, stdin, stdout))  /* initialize arithmetic */
     return FALSE;
 
@@ -1901,34 +1858,6 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
 /********************************************************************/
 
 
-<<<<<<< HEAD
-	
-      if (Q->voronoi){
-	#ifndef PLRS
-	fprintf (lrs_ofp, "\n*Voronoi Diagram: Voronoi vertices and rays are output");
-	#else
-	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output("header", "*Voronoi Diagram: Voronoi vertices and rays are output");
-	#endif
-	}
-      if (hull){
-	#ifndef PLRS
-	fprintf (lrs_ofp, "\nH-representation");
-	#else
-	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output("header", "H-representation");
-	#endif
-	}
-      else{
-	#ifndef PLRS
-	fprintf (lrs_ofp, "\nV-representation");
-	#else
-	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output("header", "V-representation");
-	#endif
-	}	
-	
-=======
   if (Q->count[2]==1 && (no_output==0 || Q->debug))   /* don't reprint after newstart */
   {
       int len=0;
@@ -1945,7 +1874,6 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
         else
 	  len=sprintf (header, "V-representation");
        }
->>>>>>> lrslib-071a
 
 /* Print linearity space                 */
 /* Don't print linearity if first column zero in hull computation */
@@ -1957,38 +1885,6 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
 
       if (nredundcol > k)
 	{
-<<<<<<< HEAD
-		#ifndef PLRS
-	  	fprintf (lrs_ofp, "\nlinearity %ld ", nredundcol - k);	/*adjust nredundcol for homog. */
-		#else
-		stringstream ss;
-		string type = "header";
-		ss<<"linearity "<<(nredundcol -k);
-		#endif
-	  	for (i = 1; i <= nredundcol - k; i++){
-			#ifndef PLRS
-	    		fprintf (lrs_ofp, " %ld", i);
-			#else
-			ss<<" "<<i;
-			#endif
-		}
-		#ifdef PLRS
-		//post output in a nonblocking manner (a consumer thread will manage output)
-		post_output(type.c_str(), ss.str().c_str());
-		#endif
-	}			/* end print of linearity space */
-
-	#ifndef PLRS
-      	fprintf (lrs_ofp, "\nbegin");
-      	fprintf (lrs_ofp, "\n***** %ld rational", Q->n);
-	#else
-	string type = "header";
-	stringstream ss;
-	ss<<"begin"<<endl<<"***** "<<Q->n<<" rational";
-	post_output(type.c_str(), ss.str().c_str());
-	#endif
-    }
-=======
 	  	len=len+sprintf (header+len, "\nlinearity %ld ", nredundcol - k);	/*adjust nredundcol for homog. */
 	  	for (i = 1; i <= nredundcol - k; i++)
 	    		len=len+sprintf (header+len, " %ld", i);
@@ -2005,7 +1901,6 @@ lrs_getfirstbasis (lrs_dic ** D_p, lrs_dat * Q, lrs_mp_matrix * Lin, long no_out
 
        free(header);	
   }
->>>>>>> lrslib-071a
 
 			/* end of if !no_output .......   */
 
@@ -2585,18 +2480,8 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
 	long lastdv = Q->lastdv;
 	long m=P->m;
 	long firstime=TRUE;
-<<<<<<< HEAD
-	long nincidence;	/* count number of tight inequalities */
-
-	//Make new output node
-	string type = "cobasis";
-	//Make stream to collect prat / pmp data
-	stringstream ss;
-
-=======
 	long nincidence;       /* count number of tight inequalities */
         long len=0;
->>>>>>> lrslib-071a
 
 	lrs_alloc_mp(Nvol); lrs_alloc_mp(Dvol);
 
@@ -2604,16 +2489,8 @@ lrs_printcobasis (lrs_dic * P, lrs_dat * Q, long col)
 
         sdet=cpmp(" det=", P->det);
 
-<<<<<<< HEAD
-	//pipe stream into output node
-	//post output in a nonblocking manner (a consumer thread will manage output)
-	post_output(type.c_str(), ss.str().c_str());
-
-	lrs_clear_mp(Nvol); lrs_clear_mp(Dvol);
-=======
         rescaledet (P, Q, Nvol, Dvol);  /* scales determinant in case input rational */
         sin_det=cprat("in_det=", Nvol,Dvol);
->>>>>>> lrslib-071a
 
         sz=cprat("z=", P->objnum, P->objden);
 
@@ -4794,11 +4671,7 @@ printA (lrs_dic * P, lrs_dat * Q)	/* print the integer m by n array A
 
 
 void 
-<<<<<<< HEAD
-pimat (lrs_dic * P, long r, long s, lrs_mp Nt, const char name[])
-=======
 pimat (lrs_dic * P, long r, long s, lrs_mp Nt, const char *name)
->>>>>>> lrslib-071a
  /*print the long precision integer in row r col s of matrix A */
 {
   long *B = P->B;

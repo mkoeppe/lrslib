@@ -10,22 +10,23 @@ noinst_HEADERS =
 
 if MPLRS
 bin_PROGRAMS += mplrs
-noinst_HEADERS += ../mplrs.h ../mplrs.c
+
+AM_CPPFLAGS = -DTIMES -DSIGNALS -DPLRS
 
 # Libtool convenience libraries
-noinst_LTLIBRARIES = liblrs1.la liblrs2.la liblrsgmp.la
+noinst_LTLIBRARIES = libmplrs1.la libmplrs2.la libmplrsgmp.la
 
-liblrs1_la_SOURCES = ../lrslib.c ../lrslong.c
-liblrs1_la_CPPFLAGS = -DTIMES -DSIGNALS -DMA -DSAFE -DLRSLONG -DPLRS
+libmplrs1_la_SOURCES = ../lrslib.c ../lrslong.c
+libmplrs1_la_CPPFLAGS = $(AM_CPPFLAGS) -DMA -DSAFE -DLRSLONG
 
-liblrs2_la_SOURCES = ../lrslib.c ../lrslong.c
-liblrs2_la_CPPFLAGS = -DTIMES -DSIGNALS -DMA -DSAFE -DB128 -DLRSLONG -DPLRS
+libmplrs2_la_SOURCES = ../lrslib.c ../lrslong.c
+libmplrs2_la_CPPFLAGS = $(AM_CPPFLAGS) -DMA -DSAFE -DB128 -DLRSLONG
 
-liblrsgmp_la_SOURCES = ../lrslib.c ../lrsgmp.c
-liblrsgmp_la_CPPFLAGS = -DTIMES -DSIGNALS -DMA -DGMP -DPLRS $(GMP_CFLAGS)
-liblrsgmp_la_LIBADD = $(GMP_LDFLAGS) -lgmp
+libmplrsgmp_la_SOURCES = ../lrslib.c ../lrsgmp.c
+libmplrsgmp_la_CPPFLAGS = $(AM_CPPFLAGS) -DMA -DGMP $(GMP_CFLAGS)
+libmplrsgmp_la_LIBADD = $(GMP_LDFLAGS) -lgmp
 
-mplrs_SOURCES = ../mplrs.c ../lrsdriver.c ../lrslib.c ../lrsgmp.c
-mplrs_CPPFLAGS = -D_WITH_GETLINE -DPLRS -DGMP 
-mplrs_LDADD = $(noinst_LTLIBRARIES) -lgmp
+mplrs_SOURCES = ../mplrs.c ../lrsdriver.c
+mplrs_CPPFLAGS = $(AM_CPPFLAGS) -D_WITH_GETLINE -DMA -DB128
+mplrs_LDADD = $(noinst_LTLIBRARIES)
 endif

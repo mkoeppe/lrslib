@@ -28,13 +28,12 @@ AC_ARG_ENABLE([mplrs],
     [:],
     [enable_mplrs=check])
 AS_IF([test "x$enable_mplrs" != xno],
-  [AC_LANG(C++)
-   AX_MPI(
+  [AX_MPI(
       [enable_mplrs=yes],
       [AS_IF([test "x$enable_mplrs" == xyes],
-      	  [AC_MSG_ERROR([mplrs requires MPI C++ compiler])],
-	  [AC_MSG_NOTICE([Will not build mplrs because MPI C++ compiler was not found])
-	   enable_mplrs=no])])
+          [AC_MSG_ERROR([mplrs requires MPI C compiler])],
+          [AC_MSG_NOTICE([Will not build mplrs because MPI C compiler was not found])
+           enable_mplrs=no])])
   ])
 AM_CONDITIONAL([MPLRS], [test x$enable_mplrs = xyes])
 

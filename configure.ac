@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(lrslib, 071a+autotools-2021-05-17a)
+AC_INIT(lrslib, 071a+autotools-2021-05-17b)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_FILES([Makefile mplrs/Makefile])
 AC_CONFIG_MACRO_DIRS([m4])

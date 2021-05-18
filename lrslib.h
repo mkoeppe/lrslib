@@ -3,6 +3,8 @@
 #define LRSLIB_VERSION "v.7.1 2020.10.17"
 #define LRSLIB_AUTHOR "*Copyright (C) 1995,2020, David Avis   avis@cs.mcgill.ca "
 
+#define VERSION LRSLIB_VERSION
+
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 2 of the License, or

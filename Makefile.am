@@ -71,8 +71,8 @@ nashdemo_CPPFLAGS = -DGMP -DMA $(GMP_CFLAGS)
 nashdemo_LDADD = liblrs.la
 
 
-include_HEADERS = lrslib.h lrsdriver.h lrsgmp.h lrslong.h lrsmp.h
-noinst_HEADERS = lrsnashlib.h mplrs.h lrsrestart.h
+include_HEADERS = lrslib.h lrsdriver.h lrsgmp.h lrslong.h lrsmp.h lrsrestart.h
+noinst_HEADERS = lrsnashlib.h mplrs.h
 
 examplesdir = $(pkgdatadir)/doc/examples
 nobase_dist_examples_DATA =			\

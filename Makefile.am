@@ -214,6 +214,7 @@ check-local:
 	echo `grep -G Totals testout1` > testout1
 	echo "*Totals: vertices=935 rays=0 bases=935 integer_vertices=0" > testout2
 	diff testout1 testout2
+	${builddir}/lrsnash ${srcdir}/games/game1 ${srcdir}/games/game2
 	rm -f testin
 	rm -f testout1
 	rm -f testout2

@@ -56,19 +56,19 @@ liblrs_la_LIBADD = $(noinst_LTLIBRARIES)
 lrsnash_SOURCES = lrsnash.c lrsnashlib.c
 # note original makefile (version 062) builds lrsnash with -DLRS_QUIET
 lrsnash_CPPFLAGS = -DGMP -DMA $(GMP_CFLAGS)
-lrsnash_LDADD = liblrs.la
+lrsnash_LDADD = liblrs.la $(GMP_LDFLAGS) -lgmp
 
 redund_SOURCES = lrs.c
 redund_CPPFLAGS = -DMA $(GMP_CFLAGS)
-redund_LDADD = liblrs.la
+redund_LDADD = liblrs.la $(GMP_LDFLAGS) -lgmp
 
 lrs_SOURCES = lrs.c
 lrs_CPPFLAGS = -DMA $(GMP_CFLAGS)
-lrs_LDADD = liblrs.la
+lrs_LDADD = liblrs.la $(GMP_LDFLAGS) -lgmp
 
 nashdemo_SOURCES = nashdemo.c lrsnashlib.c
 nashdemo_CPPFLAGS = -DGMP -DMA $(GMP_CFLAGS)
-nashdemo_LDADD = liblrs.la
+nashdemo_LDADD = liblrs.la $(GMP_LDFLAGS) -lgmp
 
 
 include_HEADERS = lrslib.h lrsdriver.h lrsgmp.h lrslong.h lrsmp.h lrsrestart.h

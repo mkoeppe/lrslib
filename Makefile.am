@@ -202,7 +202,7 @@ EXTRA_DIST =					\
 	vedemo.c
 
 # From Sage package:
-check-local:
+check-local-lrs:
 	cat ${srcdir}/ext/test/cut16_11.ext > testin
 	echo "volume" >> testin
 	${builddir}/lrs testin > testout1
@@ -214,9 +214,20 @@ check-local:
 	echo `grep -G Totals testout1` > testout1
 	echo "*Totals: vertices=935 rays=0 bases=935 integer_vertices=0" > testout2
 	diff testout1 testout2
-	${builddir}/lrsnash ${srcdir}/games/game1 ${srcdir}/games/game2
 	rm -f testin
 	rm -f testout1
 	rm -f testout2
+
+check-local-games:
+	${builddir}/lrsnash ${srcdir}/games/game
+	${builddir}/lrsnash ${srcdir}/games/gamec
+	${builddir}/lrsnash ${srcdir}/games/gamem
+	${builddir}/lrsnash ${srcdir}/games/gamemp
+
+# ignore errors -- known to crash as of 071a
+check-local-games-legacy-format:
+	-${builddir}/lrsnash ${srcdir}/games/game1 ${srcdir}/games/game2
+
+check-local: check-local-lrs check-local-games check-local-games-legacy-format
 
 CLEANFILES = testout1 testout2

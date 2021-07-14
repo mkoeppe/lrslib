@@ -128,6 +128,14 @@ nobase_dist_examples_DATA =			\
 	ine/mit/mit708-9.ine			\
 	ine/mit/mit71-61.ine			\
 	ine/mit/mit90-86.ine			\
+	ine/redund/ep.ine			\
+	ine/redund/metric80_16.ine		\
+	ine/redund/mp5.ine			\
+	ine/redund/mp5a.ine			\
+	ine/redund/mp5b.ine			\
+	ine/redund/mp5c.ine			\
+	ine/redund/non_par.ine			\
+	ine/redund/par.ine			\
 	ine/test/cross4.ine			\
 	ine/test/cyclic17_8.ine			\
 	ine/test/diamond.ine			\
@@ -153,7 +161,8 @@ nobase_dist_examples_DATA =			\
 	ine/test-062/bv7.ine			\
 	ine/test-062/c30-15.ext			\
 	ine/test-062/c40-20.ext			\
-	ine/test-062/cp6.ine			\
+	ine/test-062/ep.ine			\
+	ine/test-062/zcp6.ine			\
 	ine/test-062/fq48-19.ine		\
 	ine/test-062/m6.ine			\
 	ine/test-062/mit.ine			\

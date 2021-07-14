@@ -1,4 +1,6 @@
+#undef VERSION
 /* lrslib.h (vertex enumeration using lexicographic reverse search) */
+
 #define TITLE "lrslib "
 #define VERSION "v.7.1 2021.6.2"
 #define AUTHOR "*Copyright (C) 1995,2020, David Avis   avis@cs.mcgill.ca "
@@ -28,8 +30,6 @@
 #define LRSLIB_TITLE TITLE
 #define LRSLIB_VERSION VERSION
 #define LRSLIB_AUTHOR AUTHOR
-#undef TITLE
-#undef AUTHOR
 
 #define lrs_main suf(lrs_main)
 #define lrsv2_main suf(lrsv2_main)

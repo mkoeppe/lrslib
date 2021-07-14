@@ -230,6 +230,9 @@ check-local-lrs:
 check-local-games:
 	${builddir}/lrsnash ${srcdir}/games/game
 	${builddir}/lrsnash ${srcdir}/games/gamec
+
+# not tested automatically
+check-local-games-long:
 	${builddir}/lrsnash ${srcdir}/games/gamem
 	${builddir}/lrsnash ${srcdir}/games/gamemp
 

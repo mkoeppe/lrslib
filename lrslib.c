@@ -991,7 +991,6 @@ lrs_read_dat (lrs_dat * Q, int argc, char *argv[])
 	}
       else if (firstline)
 	{
-//        printf("\nov=%ld mess=%ld",overflow,Q->messages);
           if(overflow != 2)
 	     lrs_warning(Q,"warning",name);
 	  firstline = FALSE;
@@ -1577,7 +1576,7 @@ lrs_read_dic (lrs_dic * P, lrs_dat * Q)
           sprintf(mess,"*seed=%ld",Q->seed);
           if(overflow != 2)
 	  	lrs_warning(Q,"warning",mess);
-          srandom(Q->seed);
+          srand(Q->seed);
 	}
 
       if (strcmp (name, "estimates") == 0)
@@ -5671,7 +5670,7 @@ ran_selectpivot (lrs_dic * P, lrs_dat * Q, long *r, long *s)
 
   for ( i = 0; i < d; i++) 
     {
-	j = random() % (d-i) + i;
+	j = rand() % (d-i) + i;
 	t = perm[j]; perm[j] = perm[i]; perm[i] = t; // Swap i and j
      }
   if(Q->debug)
@@ -6253,35 +6252,18 @@ void update_R(lrs_dic *P, lrs_dat *Q, lrs_restart_dat *R)
 }
 
 
-#ifdef GMP
-                    /* compiled with gmp arithmetic */
-
-long lrsgmp_main(int argc, char *argv[],lrs_dic **P_orig, lrs_dat **Q,long overf,long stage,char *tmp, lrs_restart_dat *R)
-{
-  return lrsv2_main(argc,argv,P_orig,Q,overf,stage,tmp,R);
-}
-
-
-#elif defined(LRSLONG)
-
-#ifdef B128  
-
+#ifdef LRSLONG
+#ifdef B128
 long lrs2_main(int argc, char *argv[],lrs_dic **P_orig, lrs_dat **Q,long overf,long stage,char *tmp, lrs_restart_dat *R)
-{
-  return lrsv2_main(argc,argv,P_orig,Q,overf,stage,tmp,R);
-}
-
-
 #else
-
-long lrs1_main(int argc, char *argv[],lrs_dic **P_orig, lrs_dat **Q,long overf,long stage,char *tmp, lrs_restart_dat *R)     
+long lrs1_main(int argc, char *argv[],lrs_dic **P_orig, lrs_dat **Q,long overf,long stage,char *tmp, lrs_restart_dat *R)
+#endif
+#else
+long lrsgmp_main(int argc, char *argv[],lrs_dic **P_orig, lrs_dat **Q,long overf,long stage,char *tmp, lrs_restart_dat *R)
+#endif
 {
   return lrsv2_main(argc,argv,P_orig,Q,overf,stage,tmp,R);
 }
-
-#endif
-#endif
-
 
 long lrs_main(int argc, char *argv[])
 /* legacy version, replaced by lrsv2_main but still maintained */
@@ -6382,7 +6364,9 @@ long lrsv2_main(int argc, char *argv[],lrs_dic **P_orig, lrs_dat **Q,long overf,
 
 /* overflow occurred */
 
-        if (R->redund )
+//2021.5.19 Eric Peteren bug fix, not sure if mplrs really uses this but lrs should not!
+//      if ( R->redund )
+        if ((*Q)->mplrs && R->redund )
           {
            if(R->redineq != NULL)
              {

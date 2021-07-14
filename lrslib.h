@@ -1,9 +1,7 @@
 /* lrslib.h (vertex enumeration using lexicographic reverse search) */
-#define LRSLIB_TITLE "lrslib "
-#define LRSLIB_VERSION "v.7.1 2020.10.17"
-#define LRSLIB_AUTHOR "*Copyright (C) 1995,2020, David Avis   avis@cs.mcgill.ca "
-
-#define VERSION LRSLIB_VERSION
+#define TITLE "lrslib "
+#define VERSION "v.7.1 2021.6.2"
+#define AUTHOR "*Copyright (C) 1995,2020, David Avis   avis@cs.mcgill.ca "
 
 /* This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -26,6 +24,12 @@
 /******************************************************************************/
 /*  See http://cgm.cs.mcgill.ca/~avis/C/lrs.html for usage instructions         */
 /******************************************************************************/
+
+#define LRSLIB_TITLE TITLE
+#define LRSLIB_VERSION VERSION
+#define LRSLIB_AUTHOR AUTHOR
+#undef TITLE
+#undef AUTHOR
 
 #define lrs_main suf(lrs_main)
 #define lrsv2_main suf(lrsv2_main)

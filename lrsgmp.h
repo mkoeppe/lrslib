@@ -165,6 +165,7 @@
  #define itomp(in, a)            fmpz_set_si( (a) , (in) )
  #define mptoi(a)                fmpz_get_si( (a) )
  #define mptodouble(a)           fmpz_get_d ( (a) )
+ #define mpgetstr10(a,c)	 mpgetstr(a,10,c)
  #define mpgetstr(a,b,c)         fmpz_get_str((a),(b),(c))
  #define mpoutstr(a,b,c)         fmpz_fprint((a),(c)) /* had a (b) */
  #define mulint(a, b, c)         fmpz_mul((c),(a),(b))

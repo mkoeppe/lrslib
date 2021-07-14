@@ -1116,4 +1116,5 @@ void updateFwidth(game *g, int col, int pos, char *str) {
                 ((gInfo *)g->aux)->fwidth[col][pos] = len;
 }
 
+void resetNashSolver() { FirstTime = TRUE; }
 /******************** end of lrsnashlib.c ***************************/

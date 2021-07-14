@@ -5,8 +5,27 @@ Documentation is currently being maintained at the URL:
 http://cgm.cs.mcgill.ca/~avis/C/lrs.html
 -----------------------------------------------------------------------------
 
-Version 7.1 
+Version 7.1b
 manual: http://cgm.cs.mcgill.ca/~avis/C/lrslib/USERGUIDE71.html
+
+2021.6.02
+Added patches 1,2, and 4 supplied by the Julia group:
+https://github.com/JuliaPackaging/Yggdrasil/tree/master/L/lrslib/bundled/patches
+
+no128bit.patch removes 128-bit support and was not used.
+
+2021.6.01 makefile updates
+
+install lrsrestart.h in install-common (thanks to Philipp-Joachim Ost for the report).
+Update makefile to ease building on 32 bit architectures.
+
+2021.5.19
+redund bug reported by Eric Petersen where output can be lost in arithmetic change
+Fixed around l. 6367
+
+--------------------------------------------------------------------------------
+
+Version 7.1 
 
 2020.10.17
 
